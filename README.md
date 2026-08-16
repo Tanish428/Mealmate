@@ -1,4 +1,4 @@
-# mealmate
+# Mealmate
 
 A new Flutter project.
 
