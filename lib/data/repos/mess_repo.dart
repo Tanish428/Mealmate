@@ -1,5 +1,4 @@
-/import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meal_mate/data/models/mess_model.dart';
 import 'dart:math';
 
