@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dashboard/owner_dashboard_screen.dart';
+import 'menu/menu_manager_screen.dart';
 
 class OwnerMainScreen extends StatefulWidget {
   const OwnerMainScreen({super.key});
@@ -11,9 +12,15 @@ class OwnerMainScreen extends StatefulWidget {
 class _OwnerMainScreenState extends State<OwnerMainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const OwnerDashboardScreen(),
-    const Center(child: Text("Menu Screen (Coming Soon)")),
+  late final List<Widget> _screens = [
+    OwnerDashboardScreen(
+      onNavigateToMenu: () {
+        setState(() {
+          _currentIndex = 1;
+        });
+      },
+    ),
+    const MenuManagerScreen(),
     const Center(child: Text("Members Screen (Coming Soon)")),
     const Center(child: Text("Profile Screen (Coming Soon)")),
   ];

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../menu/menu_manager_screen.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
-  const OwnerDashboardScreen({super.key});
+  final VoidCallback? onNavigateToMenu;
+  
+  const OwnerDashboardScreen({super.key, this.onNavigateToMenu});
 
   @override
   Widget build(BuildContext context) {
@@ -12,17 +15,17 @@ class OwnerDashboardScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              _DashboardHeader(),
-              SizedBox(height: 24.0),
-              _NextMealCard(),
-              SizedBox(height: 32.0),
-              _StatsSection(),
-              SizedBox(height: 32.0),
-              _QuickActionsSection(),
-              SizedBox(height: 32.0),
-              _PendingRequestsSection(),
-              SizedBox(height: 24.0),
+            children: [
+              const _DashboardHeader(),
+              const SizedBox(height: 24.0),
+              const _NextMealCard(),
+              const SizedBox(height: 32.0),
+              const _StatsSection(),
+              const SizedBox(height: 32.0),
+              _QuickActionsSection(onNavigateToMenu: onNavigateToMenu),
+              const SizedBox(height: 32.0),
+              const _PendingRequestsSection(),
+              const SizedBox(height: 24.0),
             ],
           ),
         ),
@@ -418,7 +421,9 @@ class _StatCard extends StatelessWidget {
 }
 
 class _QuickActionsSection extends StatelessWidget {
-  const _QuickActionsSection();
+  final VoidCallback? onNavigateToMenu;
+  
+  const _QuickActionsSection({this.onNavigateToMenu});
 
   @override
   Widget build(BuildContext context) {
@@ -442,7 +447,13 @@ class _QuickActionsSection extends StatelessWidget {
             _QuickActionItem(
               icon: Icons.restaurant_menu,
               label: "Edit Menu",
-              onTap: () {},
+              onTap: () {
+                if (onNavigateToMenu != null) {
+                  onNavigateToMenu!();
+                } else {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuManagerScreen()));
+                }
+              },
             ),
             _QuickActionItem(
               icon: Icons.campaign,
