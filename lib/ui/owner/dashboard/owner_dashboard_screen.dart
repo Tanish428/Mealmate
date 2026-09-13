@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../menu/menu_manager_screen.dart';
 import '../demand/preparation_planner_screen.dart';
+import '../settings/mess_settings_screen.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToMenu;
@@ -61,27 +62,52 @@ class _DashboardHeader extends StatelessWidget {
             ),
           ],
         ),
-        Stack(
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.notifications_none, color: Colors.red.shade700),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MessSettingsScreen(),
+                  ),
+                );
+              },
+              customBorder: const CircleBorder(),
               child: Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
                   shape: BoxShape.circle,
                 ),
+                child: Icon(Icons.settings, color: Colors.red.shade700),
               ),
+            ),
+            const SizedBox(width: 12.0),
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.notifications_none, color: Colors.red.shade700),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
