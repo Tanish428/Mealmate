@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../member/member_home_screen.dart';
 
 enum Role { member, owner }
 
@@ -83,7 +84,18 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                     
                     // Primary Action Area
                     CustomButton(
-                      onPressed: _selectedRole != null ? () {} : null,
+                      onPressed: _selectedRole != null ? () {
+                        if (_selectedRole == Role.member) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MemberHomeScreen(),
+                            ),
+                          );
+                        } else if (_selectedRole == Role.owner) {
+                          // TODO: Navigate to Mess Owner Home Screen
+                        }
+                      } : null,
                       text: "Continue",
                     ),
                     const SizedBox(height: 24.0),
