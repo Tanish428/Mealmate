@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFC43A3A), // Rust/red primary color
+          seedColor: const Color(0xFFFFA500), // Hex #FFA500 Orange
           surface: const Color(0xFFFBF8F1), // Off-white/warm cream
         ),
       ),
