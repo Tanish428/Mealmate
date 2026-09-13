@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../member/member_home_screen.dart';
+import '../member/join_mess_screen.dart';
+import '../owner/create_mess_screen.dart';
 
 enum Role { member, owner }
 
@@ -89,11 +90,16 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const MemberHomeScreen(),
+                              builder: (context) => const JoinMessScreen(),
                             ),
                           );
                         } else if (_selectedRole == Role.owner) {
-                          // TODO: Navigate to Mess Owner Home Screen
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreateMessScreen(),
+                            ),
+                          );
                         }
                       } : null,
                       text: "Continue",
@@ -234,3 +240,4 @@ class CustomButton extends StatelessWidget {
     );
   }
 }
+
