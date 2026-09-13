@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../menu/menu_manager_screen.dart';
+import '../demand/preparation_planner_screen.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToMenu;
@@ -269,7 +270,14 @@ class _NextMealCard extends StatelessWidget {
             width: double.infinity,
             child: CustomButton(
               text: "View Dietary Details",
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PreparationPlannerScreen(),
+                  ),
+                );
+              },
               trailingIcon: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white),
             ),
           )
