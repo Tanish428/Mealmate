@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
 import 'role_selection_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -28,27 +33,23 @@ class _LoginScreenState extends State<LoginScreen> {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface, 
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            // Mapping padding to a standard AppSpacing constant. (Assuming 24.0 maps to AppSpacing.l)
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 32.0),
-                _buildHeaderSection(colorScheme, textTheme),
-                const SizedBox(height: 48.0),
-                _buildFormContainer(colorScheme, textTheme),
-                const SizedBox(height: 32.0),
-                _buildSocialDivider(colorScheme, textTheme),
-                const SizedBox(height: 32.0),
-                _buildGoogleButton(colorScheme),
-                const SizedBox(height: 48.0),
-                _buildFooterSection(colorScheme, textTheme),
-              ],
-            ),
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeaderSection(colorScheme, textTheme),
+              const SizedBox(height: 32.0),
+              _buildFormContainer(colorScheme, textTheme),
+              const SizedBox(height: 24.0),
+              _buildSocialDivider(colorScheme, textTheme),
+              const SizedBox(height: 24.0),
+              _buildGoogleButton(colorScheme),
+              const SizedBox(height: 32.0),
+              _buildFooterSection(colorScheme, textTheme),
+            ],
           ),
         ),
       ),
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
             color: colorScheme.surface,
             boxShadow: [
               BoxShadow(
-                color: colorScheme.primary.withAlpha(38), // 0.15 * 255
+                color: colorScheme.primary.withAlpha(38),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -74,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: Center(
             child: Icon(
-              Icons.restaurant, // Placeholder for the actual logo
+              Icons.restaurant, // Placeholder for Logo
               size: 40,
               color: colorScheme.primary,
             ),
@@ -82,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 24.0),
         Text(
-          "Welcome Back",
+          "Create Account",
           style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -90,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 8.0),
         Text(
-          "Log in to continue to MealMate",
+          "Join MealMate to start managing meals",
           style: textTheme.bodyMedium?.copyWith(
             color: Colors.grey.shade600,
           ),
@@ -108,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(10), // 0.04 * 255
+            color: Colors.black.withAlpha(10),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -117,35 +118,26 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Email Address",
-                style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "Required",
-                style: textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ],
-          ),
+          _buildInputLabelRow("Full Name", "Required", textTheme),
           const SizedBox(height: 8.0),
-          // Using CustomTextField as dictated by the specs
+          CustomTextField(
+            controller: _nameController,
+            prefixIcon: const Icon(Icons.person_outline),
+            hintText: "Enter your name",
+          ),
+          const SizedBox(height: 16.0),
+          
+          _buildInputLabelRow("Email Address", "Required", textTheme),
+          const SizedBox(height: 8.0),
           CustomTextField(
             controller: _emailController,
             prefixIcon: const Icon(Icons.mail_outline),
             hintText: "Enter your email",
           ),
           const SizedBox(height: 16.0),
-          Text(
-            "Password",
-            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+
+          _buildInputLabelRow("Password", "Min. 8 chars", textTheme),
           const SizedBox(height: 8.0),
-          // Using CustomTextField as dictated by the specs
           CustomTextField(
             controller: _passwordController,
             prefixIcon: const Icon(Icons.lock_outline),
@@ -160,24 +152,53 @@ class _LoginScreenState extends State<LoginScreen> {
                 });
               },
             ),
-            hintText: "Enter your password",
+            hintText: "Create a password",
           ),
-          const SizedBox(height: 12.0),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: () {},
-              child: Text(
-                "Forgot Password?",
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary, // Primary rust/deep red
-                  fontWeight: FontWeight.w600,
-                ),
+          const SizedBox(height: 16.0),
+
+          Text(
+            "Confirm Password",
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8.0),
+          CustomTextField(
+            controller: _confirmPasswordController,
+            prefixIcon: const Icon(Icons.lock_outline),
+            obscureText: !_isConfirmPasswordVisible,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
               ),
+              onPressed: () {
+                setState(() {
+                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                });
+              },
+            ),
+            hintText: "Confirm your password",
+          ),
+          
+          const SizedBox(height: 24.0),
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              text: "By creating an account, you agree to our ",
+              style: textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+              children: [
+                TextSpan(
+                  text: "Terms",
+                  style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                ),
+                const TextSpan(text: " and "),
+                TextSpan(
+                  text: "Privacy Policy",
+                  style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
           ),
+          
           const SizedBox(height: 24.0),
-          // Using CustomButton as dictated by the specs
           CustomButton(
             onPressed: () {
               Navigator.push(
@@ -185,20 +206,35 @@ class _LoginScreenState extends State<LoginScreen> {
                 MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
               );
             },
-            text: "Login",
-            // The solid rust/deep red and shadow are likely defaults or handled inside CustomButton.
+            text: "Create Account",
           ),
         ],
       ),
     );
   }
 
+  Widget _buildInputLabelRow(String label, String trailingText, TextTheme textTheme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        Text(
+          trailingText,
+          style: textTheme.bodySmall?.copyWith(
+            color: Colors.grey.shade500,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSocialDivider(ColorScheme colorScheme, TextTheme textTheme) {
     return Row(
       children: [
-        Expanded(
-          child: Divider(color: Colors.grey.shade300),
-        ),
+        Expanded(child: Divider(color: Colors.grey.shade300)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Container(
@@ -216,20 +252,16 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        Expanded(
-          child: Divider(color: Colors.grey.shade300),
-        ),
+        Expanded(child: Divider(color: Colors.grey.shade300)),
       ],
     );
   }
 
   Widget _buildGoogleButton(ColorScheme colorScheme) {
-    // Using CustomButton with outline/pill styling as specified
     return CustomButton(
       onPressed: () {},
       text: "Continue with Google",
       isOutlined: true,
-      // Assuming CustomButton accepts a prefix widget/icon
       prefixIcon: Padding(
         padding: const EdgeInsets.only(right: 8.0),
         child: Image.asset(
@@ -245,22 +277,19 @@ class _LoginScreenState extends State<LoginScreen> {
     return Center(
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SignupScreen()),
-          );
+          Navigator.pop(context);
         },
         child: RichText(
           text: TextSpan(
-            text: "Don't have an account? ",
+            text: "Already have an account? ",
             style: textTheme.bodyMedium?.copyWith(
               color: Colors.grey.shade600,
             ),
             children: [
               TextSpan(
-                text: "Sign Up",
+                text: "Log In",
                 style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary, // Primary rust/red
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.bold,
                   decoration: TextDecoration.underline,
                 ),
@@ -275,7 +304,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
 // =====================================================================
 // STUB IMPLEMENTATIONS FOR REQUIRED WIDGETS
-// Provided here to prevent analyze errors since they don't exist yet in the repo.
 // =====================================================================
 
 class CustomTextField extends StatelessWidget {
@@ -333,7 +361,7 @@ class CustomButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16.0),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0), // Pill-shaped
+            borderRadius: BorderRadius.circular(30.0),
           ),
         ),
         child: Row(
