@@ -37,20 +37,12 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
           Positioned(
             top: 0,
             right: 0,
-            child: Image.asset(
-              'assets/images/bg_leaves_top.png',
-              width: 150,
-              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-            ),
+            child: const SizedBox.shrink(),
           ),
           Positioned(
             bottom: 0,
             left: 0,
-            child: Image.asset(
-              'assets/images/bg_leaves_bottom.png',
-              width: 150,
-              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-            ),
+            child: const SizedBox.shrink(),
           ),
           Positioned(
             bottom: AppSpacing.l,
@@ -498,6 +490,7 @@ class CustomButton extends StatelessWidget {
     );
   }
 }
+
 
 
 
