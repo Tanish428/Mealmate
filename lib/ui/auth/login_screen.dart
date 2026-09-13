@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
+import 'role_selection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -178,7 +179,12 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 24.0),
           // Using CustomButton as dictated by the specs
           CustomButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+              );
+            },
             text: "Login",
             // The solid rust/deep red and shadow are likely defaults or handled inside CustomButton.
           ),
