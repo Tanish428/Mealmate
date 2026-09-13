@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'owner_main_screen.dart';
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {
@@ -86,7 +87,14 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
                   CustomButton(
                     text: 'Create Mess',
                     trailingIcon: Icons.arrow_forward,
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const OwnerMainScreen(),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: AppSpacing.xl),
                 ],
