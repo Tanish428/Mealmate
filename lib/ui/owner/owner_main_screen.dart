@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dashboard/owner_dashboard_screen.dart';
 import 'menu/menu_manager_screen.dart';
-import 'settings/mess_settings_screen.dart';
+import 'settings/mess_profile_screen.dart';
 import 'members/members_screen.dart';
 
 class OwnerMainScreen extends StatefulWidget {
@@ -29,7 +29,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
     ),
     const MenuManagerScreen(),
     const MembersScreen(),
-    const MessSettingsScreen(),
+    const MessProfileScreen(),
   ];
 
   @override

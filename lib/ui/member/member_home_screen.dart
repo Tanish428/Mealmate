@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'menu_view_screen.dart';
 import 'attendance_toggle_screen.dart';
 import 'profile_screen.dart';
-
+import 'feedback/feedback_screen.dart';
+import 'announcements/notice_board_screen.dart';
 class MemberHomeScreen extends StatefulWidget {
   const MemberHomeScreen({super.key});
 
@@ -161,33 +162,41 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             ],
           ),
         ),
-        Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.notifications_none,
-                color: Colors.black87,
-              ),
-            ),
-            Positioned(
-              right: 2,
-              top: 2,
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: primaryRed,
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NoticeBoardScreen()),
+            );
+          },
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(
+                  Icons.notifications_none,
+                  color: Colors.black87,
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: primaryRed,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -610,6 +619,14 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                 Icons.bar_chart_outlined,
                 'Mess Updates',
                 primaryRed,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NoticeBoardScreen(),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(width: 8.0),
@@ -618,6 +635,14 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                 Icons.chat_bubble_outline,
                 'Give Feedback',
                 primaryRed,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FeedbackScreen(),
+                    ),
+                  );
+                },
               ),
             ),
           ],

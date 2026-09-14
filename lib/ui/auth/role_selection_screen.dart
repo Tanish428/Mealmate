@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../member/join_mess_screen.dart';
-import '../owner/create_mess_screen.dart';
+import '../owner/mess creation/create_mess_screen.dart';
 
 enum Role { member, owner }
 

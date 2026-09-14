@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:meal_mate/data/models/menu_model.dart';
+import '../models/menu_model.dart';
 
 class MenuRepo {
   final FirebaseFirestore _firestore;

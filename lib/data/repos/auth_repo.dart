@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
-import 'package:meal_mate/data/models/user_model.dart';
+import 'package:mealmate/data/models/user_model.dart';
 
 class AuthRepo {
   final fb_auth.FirebaseAuth _auth;
