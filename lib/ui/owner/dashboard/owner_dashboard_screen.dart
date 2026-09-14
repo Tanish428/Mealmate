@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import '../menu/menu_manager_screen.dart';
 import '../demand/preparation_planner_screen.dart';
 import '../settings/mess_settings_screen.dart';
+import '../analytics/waste_reports_screen.dart';
+import '../surplus/surplus_allocation_screen.dart';
+import '../members/members_screen.dart';
+import '../broadcast/broadcast_screen.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToMenu;
+  final VoidCallback? onNavigateToMembers;
   
-  const OwnerDashboardScreen({super.key, this.onNavigateToMenu});
+  const OwnerDashboardScreen({super.key, this.onNavigateToMenu, this.onNavigateToMembers});
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +27,9 @@ class OwnerDashboardScreen extends StatelessWidget {
               const SizedBox(height: 24.0),
               const _NextMealCard(),
               const SizedBox(height: 32.0),
-              const _StatsSection(),
+              _StatsSection(onNavigateToMembers: onNavigateToMembers),
               const SizedBox(height: 32.0),
               _QuickActionsSection(onNavigateToMenu: onNavigateToMenu),
-              const SizedBox(height: 32.0),
-              const _PendingRequestsSection(),
               const SizedBox(height: 24.0),
             ],
           ),
@@ -83,31 +86,6 @@ class _DashboardHeader extends StatelessWidget {
                 ),
                 child: Icon(Icons.settings, color: Colors.red.shade700),
               ),
-            ),
-            const SizedBox(width: 12.0),
-            Stack(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.notifications_none, color: Colors.red.shade700),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -314,7 +292,8 @@ class _NextMealCard extends StatelessWidget {
 }
 
 class _StatsSection extends StatelessWidget {
-  const _StatsSection();
+  final VoidCallback? onNavigateToMembers;
+  const _StatsSection({this.onNavigateToMembers});
 
   @override
   Widget build(BuildContext context) {
@@ -346,17 +325,13 @@ class _StatsSection extends StatelessWidget {
                 iconBgColor: Colors.red.shade50,
                 value: "50",
                 label: "Active Members",
-              ),
-            ),
-            const SizedBox(width: 12.0),
-            Expanded(
-              child: _StatCard(
-                icon: Icons.person_add,
-                iconColor: Colors.red.shade700,
-                iconBgColor: Colors.red.shade50,
-                value: "3",
-                label: "Pending Requests",
-                hasNotification: true,
+                onTap: () {
+                  if (onNavigateToMembers != null) {
+                    onNavigateToMembers!();
+                  } else {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MembersScreen()));
+                  }
+                },
               ),
             ),
             const SizedBox(width: 12.0),
@@ -382,7 +357,7 @@ class _StatCard extends StatelessWidget {
   final Color iconBgColor;
   final String value;
   final String label;
-  final bool hasNotification;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.icon,
@@ -390,54 +365,38 @@ class _StatCard extends StatelessWidget {
     required this.iconBgColor,
     required this.value,
     required this.label,
-    this.hasNotification = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 20),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12.0),
+      child: Container(
+        padding: const EdgeInsets.all(12.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                shape: BoxShape.circle,
               ),
-              if (hasNotification)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.fromBorderSide(
-                          BorderSide(color: Colors.white, width: 2)),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
           const SizedBox(height: 12.0),
           Text(value,
               style: Theme.of(context)
@@ -450,7 +409,7 @@ class _StatCard extends StatelessWidget {
                   color: Colors.grey.shade600, height: 1.2)),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -470,14 +429,11 @@ class _QuickActionsSection extends StatelessWidget {
                 .titleLarge
                 ?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 16.0),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        Wrap(
+          spacing: 12.0,
+          runSpacing: 16.0,
+          alignment: WrapAlignment.spaceEvenly,
           children: [
-            _QuickActionItem(
-              icon: Icons.qr_code_scanner,
-              label: "Scan QR",
-              onTap: () {},
-            ),
             _QuickActionItem(
               icon: Icons.restaurant_menu,
               label: "Edit Menu",
@@ -492,7 +448,38 @@ class _QuickActionsSection extends StatelessWidget {
             _QuickActionItem(
               icon: Icons.campaign,
               label: "Broadcast",
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BroadcastScreen(),
+                  ),
+                );
+              },
+            ),
+            _QuickActionItem(
+              icon: Icons.eco,
+              label: "Waste",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const WasteReportsScreen(),
+                  ),
+                );
+              },
+            ),
+            _QuickActionItem(
+              icon: Icons.volunteer_activism,
+              label: "Surplus",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SurplusAllocationScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -537,135 +524,7 @@ class _QuickActionItem extends StatelessWidget {
   }
 }
 
-class _PendingRequestsSection extends StatelessWidget {
-  const _PendingRequestsSection();
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Text("Pending Requests",
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(width: 8.0),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Text("3",
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red.shade700)),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () {},
-              child: Text("View All >",
-                  style: TextStyle(
-                      color: Colors.red.shade700, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12.0),
-        Column(
-          children: const [
-            _PendingRequestListItem(
-              name: "Rahul Patel",
-              timeText: "Requested 12 min ago",
-            ),
-            SizedBox(height: 12.0),
-            _PendingRequestListItem(
-              name: "Priya Shah",
-              timeText: "Requested 45 min ago",
-            ),
-            SizedBox(height: 12.0),
-            _PendingRequestListItem(
-              name: "Harsh Mehta",
-              timeText: "Requested 2 hrs ago",
-            ),
-          ],
-        )
-      ],
-    );
-  }
-}
-
-class _PendingRequestListItem extends StatelessWidget {
-  final String name;
-  final String timeText;
-
-  const _PendingRequestListItem({
-    required this.name,
-    required this.timeText,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: Colors.grey.shade200,
-          child: Icon(Icons.person, color: Colors.grey.shade400),
-        ),
-        const SizedBox(width: 12.0),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4.0),
-            Text(timeText,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey.shade500)),
-          ],
-        ),
-        const Spacer(),
-        Row(
-          children: [
-            InkWell(
-              onTap: () {},
-              customBorder: const CircleBorder(),
-              child: Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade700,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 20),
-              ),
-            ),
-            const SizedBox(width: 12.0),
-            InkWell(
-              onTap: () {},
-              customBorder: const CircleBorder(),
-              child: Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.close, color: Colors.black54, size: 20),
-              ),
-            ),
-          ],
-        )
-      ],
-    );
-  }
-}
 
 class CustomButton extends StatelessWidget {
   final VoidCallback onPressed;

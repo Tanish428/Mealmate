@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dashboard/owner_dashboard_screen.dart';
 import 'menu/menu_manager_screen.dart';
+import 'settings/mess_settings_screen.dart';
+import 'members/members_screen.dart';
 
 class OwnerMainScreen extends StatefulWidget {
   const OwnerMainScreen({super.key});
@@ -19,10 +21,15 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
           _currentIndex = 1;
         });
       },
+      onNavigateToMembers: () {
+        setState(() {
+          _currentIndex = 2;
+        });
+      },
     ),
     const MenuManagerScreen(),
-    const Center(child: Text("Members Screen (Coming Soon)")),
-    const Center(child: Text("Profile Screen (Coming Soon)")),
+    const MembersScreen(),
+    const MessSettingsScreen(),
   ];
 
   @override
