@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:meal_mate/data/models/mess_model.dart';
+import '../models/mess_model.dart';
 import 'dart:math';
 
 class MessRepo {

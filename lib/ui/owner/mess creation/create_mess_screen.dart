@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'owner_main_screen.dart';
+import '../owner_main_screen.dart';
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {

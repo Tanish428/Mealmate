@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../menu/menu_manager_screen.dart';
 import '../demand/preparation_planner_screen.dart';
-import '../settings/mess_settings_screen.dart';
+import '../settings/mess_profile_screen.dart';
 import '../analytics/waste_reports_screen.dart';
 import '../surplus/surplus_allocation_screen.dart';
 import '../members/members_screen.dart';
 import '../broadcast/broadcast_screen.dart';
-
+import '../feedback/owner_feedback_screen.dart';
 class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToMenu;
   final VoidCallback? onNavigateToMembers;
@@ -73,7 +73,7 @@ class _DashboardHeader extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const MessSettingsScreen(),
+                    builder: (context) => const MessProfileScreen(),
                   ),
                 );
               },
@@ -477,6 +477,18 @@ class _QuickActionsSection extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const SurplusAllocationScreen(),
+                  ),
+                );
+              },
+            ),
+            _QuickActionItem(
+              icon: Icons.chat_bubble_outline,
+              label: "Feedback",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OwnerFeedbackScreen(),
                   ),
                 );
               },
