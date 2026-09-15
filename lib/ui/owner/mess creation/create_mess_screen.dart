@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../common/custom_textfield.dart';
+import '../../common/custom_button.dart';
 import '../owner_main_screen.dart';
 
 // Local constants for spacing as per the design constraints
@@ -22,6 +24,18 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
   bool _providesLunch = true;
   bool _providesDinner = true;
 
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _capacityController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressController.dispose();
+    _capacityController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -35,15 +49,15 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
       body: Stack(
         children: [
           // Background Decorations
-          Positioned(
+          const Positioned(
             top: 0,
             right: 0,
-            child: const SizedBox.shrink(),
+            child: SizedBox.shrink(),
           ),
-          Positioned(
+          const Positioned(
             bottom: 0,
             left: 0,
-            child: const SizedBox.shrink(),
+            child: SizedBox.shrink(),
           ),
           Positioned(
             bottom: AppSpacing.l,
@@ -84,17 +98,20 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
                   const SizedBox(height: AppSpacing.xl),
 
                   // Action Area
-                  CustomButton(
-                    text: 'Create Mess',
-                    trailingIcon: Icons.arrow_forward,
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const OwnerMainScreen(),
-                        ),
-                      );
-                    },
+                  SizedBox(
+                    width: double.infinity,
+                    child: CustomButton(
+                      text: 'Create Mess',
+                      // trailingIcon logic isn't natively in CustomButton, but we can just use text
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const OwnerMainScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
                 ],
@@ -215,24 +232,43 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.l),
-          const CustomTextField(
-            label: 'Mess Name',
-            placeholder: 'e.g., Campus Central Mess',
+          
+          Text(
+            'Mess Name',
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          CustomTextField(
+            controller: _nameController,
+            hintText: 'e.g., Campus Central Mess',
             prefixIcon: Icons.storefront,
           ),
           const SizedBox(height: AppSpacing.m),
-          const CustomTextField(
-            label: 'Address',
-            placeholder: 'e.g., Near University Campus',
+
+          Text(
+            'Address',
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          CustomTextField(
+            controller: _addressController,
+            hintText: 'e.g., Near University Campus',
             prefixIcon: Icons.location_on,
           ),
           const SizedBox(height: AppSpacing.m),
-          const CustomTextField(
-            label: 'Maximum Capacity',
-            placeholder: 'e.g., 50',
+
+          Text(
+            'Maximum Capacity',
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          CustomTextField(
+            controller: _capacityController,
+            hintText: 'e.g., 50',
             prefixIcon: Icons.group,
           ),
           const SizedBox(height: AppSpacing.s),
+          
           Text(
             'Maximum number of members your mess can accommodate.',
             style: textTheme.bodySmall?.copyWith(
@@ -404,101 +440,3 @@ class _MealChip extends StatelessWidget {
     );
   }
 }
-
-// Local duplicates to adhere to existing codebase anti-pattern since they are not globally exported
-class CustomTextField extends StatelessWidget {
-  final String label;
-  final String placeholder;
-  final IconData prefixIcon;
-
-  const CustomTextField({
-    super.key,
-    required this.label,
-    required this.placeholder,
-    required this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          decoration: InputDecoration(
-            hintText: placeholder,
-            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-            prefixIcon: Icon(prefixIcon, size: 22, color: colorScheme.onSurfaceVariant),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class CustomButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-  final IconData? trailingIcon;
-
-  const CustomButton({
-    super.key,
-    required this.text,
-    required this.onPressed,
-    this.trailingIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary, 
-          foregroundColor: colorScheme.onPrimary,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          elevation: 0,
-        ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              text,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            if (trailingIcon != null) ...[
-              const SizedBox(width: 8),
-              Icon(trailingIcon, size: 20),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-
-

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../common/custom_textfield.dart';
+import '../../common/custom_button.dart';
 
 class AnnouncementData {
   final IconData icon;
@@ -146,30 +148,18 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
                 ),
           ),
           const SizedBox(height: 16.0),
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: TextField(
-              controller: _announcementController,
-              maxLines: 5,
-              maxLength: 500,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: "Type your announcement here...",
-                hintStyle: TextStyle(color: Colors.grey),
-                counterStyle: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ),
+          CustomTextField(
+            controller: _announcementController,
+            maxLines: 5,
+            maxLength: 500,
+            hintText: "Type your announcement here...",
           ),
           const SizedBox(height: 24.0),
           SizedBox(
             width: double.infinity,
-            child: _CustomButton(
+            child: CustomButton(
               text: "Send to 50 Members",
-              prefixIcon: const Icon(Icons.send, color: Colors.white, size: 20),
+              icon: Icons.send,
               onPressed: () {
                 // Future implementation
               },
@@ -280,40 +270,6 @@ class _AnnouncementCard extends StatelessWidget {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CustomButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final String text;
-  final Widget? prefixIcon;
-
-  const _CustomButton({
-    required this.onPressed,
-    required this.text,
-    this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (prefixIcon != null) ...[prefixIcon!, const SizedBox(width: 8.0)],
-          Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/custom_button.dart';
 import '../member/join_mess_screen.dart';
 import '../owner/mess creation/create_mess_screen.dart';
 
@@ -185,59 +186,4 @@ class _RoleCard extends StatelessWidget {
   }
 }
 
-// =====================================================================
-// STUB IMPLEMENTATIONS FOR REQUIRED WIDGETS
-// Provided here to prevent analyze errors since they don't exist yet in the repo.
-// =====================================================================
-
-class CustomButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final String text;
-  final bool isOutlined;
-  final Widget? prefixIcon;
-
-  const CustomButton({
-    super.key,
-    required this.onPressed,
-    required this.text,
-    this.isOutlined = false,
-    this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isOutlined) {
-      return OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ?prefixIcon,
-            Text(text),
-          ],
-        ),
-      );
-    }
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        disabledBackgroundColor: Colors.grey.shade300,
-        disabledForegroundColor: Colors.grey.shade500,
-      ),
-      child: Text(text),
-    );
-  }
-}
 

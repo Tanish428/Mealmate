@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../common/stat_card.dart';
+import '../../../data/repos/mock/mock_ui_repos.dart';
 
 class ChartData {
   final String label;
@@ -35,29 +37,30 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
   String _selectedTimeframe = "This Month";
   
   final List<String> _timeframes = ["This Week", "This Month", "All Time"];
+  final analytics = MockUIRepos.analytics;
 
-  final List<ChartData> _chartData = [
-    const ChartData(label: "Week 1", standardCapacity: 50, actualPrepared: 42),
-    const ChartData(label: "Week 2", standardCapacity: 50, actualPrepared: 38),
-    const ChartData(label: "Week 3", standardCapacity: 50, actualPrepared: 40),
-    const ChartData(label: "Week 4", standardCapacity: 50, actualPrepared: 36),
+  late final List<ChartData> _chartData = [
+    ChartData(label: "Week 1", standardCapacity: analytics.weeklyStandardCapacity[0], actualPrepared: analytics.weeklyActualPrep[0]),
+    ChartData(label: "Week 2", standardCapacity: analytics.weeklyStandardCapacity[1], actualPrepared: analytics.weeklyActualPrep[1]),
+    ChartData(label: "Week 3", standardCapacity: analytics.weeklyStandardCapacity[2], actualPrepared: analytics.weeklyActualPrep[2]),
+    ChartData(label: "Week 4", standardCapacity: analytics.weeklyStandardCapacity[3], actualPrepared: analytics.weeklyActualPrep[3]),
   ];
 
-  final List<InsightData> _insights = [
-    const InsightData(
+  late final List<InsightData> _insights = [
+    InsightData(
       icon: Icons.group_off,
       title: "Average Daily Opt-outs",
-      trailingText: "12 Members",
+      trailingText: analytics.averageOptOuts,
     ),
-    const InsightData(
+    InsightData(
       icon: Icons.restaurant_menu,
       title: "Most Skipped Meal",
-      trailingText: "Sunday Dinner",
+      trailingText: analytics.mostSkippedMeal,
     ),
-    const InsightData(
+    InsightData(
       icon: Icons.calendar_today,
       title: "Busiest Day",
-      trailingText: "Wednesday",
+      trailingText: analytics.busiestDay,
     ),
   ];
 
@@ -176,26 +179,24 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
     return Row(
       children: [
         Expanded(
-          child: _HeroMetricCard(
-            icon: Icons.eco,
-            iconColor: Colors.green.shade800,
-            iconBgColor: Colors.green.shade50,
-            value: "145 kg",
-            valueColor: Colors.green.shade800,
+          child: StatCard(
+            metric: analytics.totalFoodSaved,
             title: "Food Saved",
             subtitle: "This month",
+            icon: Icons.eco,
+            iconColor: Colors.green.shade800,
+            iconBackgroundColor: Colors.green.shade50,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: _HeroMetricCard(
-            icon: Icons.account_balance_wallet,
-            iconColor: Colors.red.shade700,
-            iconBgColor: Colors.red.shade50,
-            value: "₹8,250",
-            valueColor: Colors.red.shade700,
+          child: StatCard(
+            metric: analytics.totalCostSaved,
             title: "Cost Saved",
             subtitle: "This month",
+            icon: Icons.account_balance_wallet,
+            iconColor: Colors.red.shade700,
+            iconBackgroundColor: Colors.red.shade50,
           ),
         ),
       ],
@@ -375,87 +376,13 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                 children: [
                   const TextSpan(text: "Great job! ", style: TextStyle(fontWeight: FontWeight.bold)),
                   const TextSpan(text: "You saved approximately "),
-                  const TextSpan(text: "145 kg", style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: analytics.totalFoodSaved, style: const TextStyle(fontWeight: FontWeight.bold)),
                   const TextSpan(text: " of food this month. That's about "),
                   const TextSpan(text: "350 kg", style: TextStyle(fontWeight: FontWeight.bold)),
                   const TextSpan(text: " CO2 emissions avoided."),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroMetricCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBgColor;
-  final String value;
-  final Color valueColor;
-  final String title;
-  final String subtitle;
-
-  const _HeroMetricCard({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBgColor,
-    required this.value,
-    required this.valueColor,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: valueColor,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
           ),
         ],
       ),

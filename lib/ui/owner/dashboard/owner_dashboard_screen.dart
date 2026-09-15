@@ -7,6 +7,9 @@ import '../surplus/surplus_allocation_screen.dart';
 import '../members/members_screen.dart';
 import '../broadcast/broadcast_screen.dart';
 import '../feedback/owner_feedback_screen.dart';
+import '../../common/custom_button.dart';
+import '../../common/stat_card.dart';
+
 class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToMenu;
   final VoidCallback? onNavigateToMembers;
@@ -274,6 +277,7 @@ class _NextMealCard extends StatelessWidget {
             width: double.infinity,
             child: CustomButton(
               text: "View Dietary Details",
+              icon: Icons.arrow_forward_ios,
               onPressed: () {
                 Navigator.push(
                   context,
@@ -282,7 +286,6 @@ class _NextMealCard extends StatelessWidget {
                   ),
                 );
               },
-              trailingIcon: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white),
             ),
           )
         ],
@@ -319,12 +322,7 @@ class _StatsSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _StatCard(
-                icon: Icons.group,
-                iconColor: Colors.red.shade700,
-                iconBgColor: Colors.red.shade50,
-                value: "50",
-                label: "Active Members",
+              child: GestureDetector(
                 onTap: () {
                   if (onNavigateToMembers != null) {
                     onNavigateToMembers!();
@@ -332,84 +330,29 @@ class _StatsSection extends StatelessWidget {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const MembersScreen()));
                   }
                 },
+                child: StatCard(
+                  metric: "50",
+                  title: "Active Members",
+                  icon: Icons.group,
+                  iconColor: Colors.red.shade700,
+                  iconBackgroundColor: Colors.red.shade50,
+                ),
               ),
             ),
             const SizedBox(width: 12.0),
             Expanded(
-              child: _StatCard(
+              child: StatCard(
+                metric: "₹12,500",
+                title: "Monthly\nRevenue",
                 icon: Icons.account_balance_wallet,
                 iconColor: Colors.green.shade700,
-                iconBgColor: Colors.green.shade50,
-                value: "₹12,500",
-                label: "Monthly\nRevenue",
+                iconBackgroundColor: Colors.green.shade50,
               ),
             ),
           ],
         ),
       ],
     );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBgColor;
-  final String value;
-  final String label;
-  final VoidCallback? onTap;
-
-  const _StatCard({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBgColor,
-    required this.value,
-    required this.label,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12.0),
-      child: Container(
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
-            ),
-          const SizedBox(height: 12.0),
-          Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4.0),
-          Text(label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600, height: 1.2)),
-        ],
-      ),
-    ));
   }
 }
 
@@ -530,67 +473,6 @@ class _QuickActionItem extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   )),
-        ],
-      ),
-    );
-  }
-}
-
-
-
-class CustomButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final String text;
-  final bool isOutlined;
-  final Widget? prefixIcon;
-  final Widget? trailingIcon;
-
-  const CustomButton({
-    super.key,
-    required this.onPressed,
-    required this.text,
-    this.isOutlined = false,
-    this.prefixIcon,
-    this.trailingIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isOutlined) {
-      return OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0), // Pill-shaped
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (prefixIcon != null) ...[prefixIcon!, const SizedBox(width: 8.0)],
-            Text(text),
-            if (trailingIcon != null) ...[const SizedBox(width: 8.0), trailingIcon!],
-          ],
-        ),
-      );
-    }
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (prefixIcon != null) ...[prefixIcon!, const SizedBox(width: 8.0)],
-          Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
-          if (trailingIcon != null) ...[const SizedBox(width: 8.0), trailingIcon!],
         ],
       ),
     );

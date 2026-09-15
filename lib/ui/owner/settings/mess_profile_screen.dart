@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../common/custom_textfield.dart';
+import '../../common/custom_button.dart';
 
 class MessProfileScreen extends StatefulWidget {
   const MessProfileScreen({super.key});
@@ -9,17 +11,11 @@ class MessProfileScreen extends StatefulWidget {
 
 class _MessProfileScreenState extends State<MessProfileScreen> {
   late TextEditingController _nameController;
-  int _nameLength = 15;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: "DDU Campus Mess");
-    _nameController.addListener(() {
-      setState(() {
-        _nameLength = _nameController.text.length;
-      });
-    });
   }
 
   @override
@@ -165,35 +161,10 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
             ),
           ),
           const SizedBox(height: 8.0),
-          TextField(
+          CustomTextField(
             controller: _nameController,
             maxLength: 50,
-            decoration: InputDecoration(
-              counterText: "", // Hide default counter to use custom one
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                borderSide: BorderSide(color: colorScheme.primary),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4.0),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              "$_nameLength/50",
-              style: textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade500,
-              ),
-            ),
+            hintText: "Enter mess name",
           ),
           const SizedBox(height: 20.0),
           
@@ -325,88 +296,11 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   Widget _buildLogOutButton(ColorScheme colorScheme) {
     return CustomButton(
       text: "Log Out",
-      isOutlined: true,
-      prefixIcon: Icon(Icons.logout, color: colorScheme.primary, size: 20.0),
+      isPrimary: false,
+      icon: Icons.logout,
       onPressed: () {
         // Empty callback per rules
       },
-    );
-  }
-}
-
-// =====================================================================
-// STUB IMPLEMENTATION FOR CUSTOM BUTTON
-// Provided here to prevent analyze errors since it's commonly used locally.
-// =====================================================================
-
-class CustomButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final String text;
-  final bool isOutlined;
-  final Widget? prefixIcon;
-
-  const CustomButton({
-    super.key,
-    required this.onPressed,
-    required this.text,
-    this.isOutlined = false,
-    this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
-    if (isOutlined) {
-      return OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          side: BorderSide(color: colorScheme.primary, width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (prefixIcon != null) ...[prefixIcon!, const SizedBox(width: 8.0)],
-            Text(
-              text,
-              style: TextStyle(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 16.0,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        elevation: 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (prefixIcon != null) ...[prefixIcon!, const SizedBox(width: 8.0)],
-          Text(
-            text,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.0,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
