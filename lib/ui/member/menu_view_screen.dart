@@ -207,7 +207,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+
     );
   }
 
@@ -722,3 +722,4 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
     );
   }
 }
+

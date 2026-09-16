@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../common/stat_card.dart';
+import '../common/stat_card.dart';
 
 class FeedbackItem {
   final String id;
@@ -78,7 +78,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(colorScheme, textTheme),
+              _buildHeader(context, colorScheme, textTheme),
               const SizedBox(height: 32.0),
               _buildSummaryMetric(colorScheme, textTheme),
               const SizedBox(height: 32.0),
@@ -100,7 +100,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
     return Row(
       children: [
         Container(
@@ -110,9 +110,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
           ),
           child: IconButton(
             icon: Icon(Icons.arrow_back, color: colorScheme.primary),
-            onPressed: () {
-              // Empty callback per architectural rules
-            },
+            onPressed: () { if (Navigator.of(context).canPop()) Navigator.pop(context); },
           ),
         ),
         const SizedBox(width: 16.0),
@@ -277,3 +275,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
     );
   }
 }
+
+
+
+

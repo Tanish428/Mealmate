@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../common/stat_card.dart';
-import '../../../data/repos/mock/mock_ui_repos.dart';
+import '../common/stat_card.dart';
+import '../../data/repos/mock/mock_ui_repos.dart';
 
 class ChartData {
   final String label;
@@ -505,3 +505,5 @@ class _CustomBarChart extends StatelessWidget {
     );
   }
 }
+
+

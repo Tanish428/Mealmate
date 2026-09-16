@@ -57,9 +57,9 @@ class MemberMainShell extends StatelessWidget {
                   primaryColor: primaryColor,
                 ),
                 _buildNavItem(
-                  icon: Icons.campaign_outlined,
-                  activeIcon: Icons.campaign,
-                  label: "Notices",
+                  icon: Icons.calendar_today_outlined,
+                  activeIcon: Icons.calendar_today,
+                  label: "Attendance",
                   index: 2,
                   currentIndex: navigationShell.currentIndex,
                   primaryColor: primaryColor,
@@ -124,3 +124,4 @@ class MemberMainShell extends StatelessWidget {
     );
   }
 }
+

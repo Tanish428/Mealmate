@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
-import 'member_home_screen.dart';
+
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {
@@ -211,12 +212,7 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
             child: CustomButton(
               text: 'Join Mess',
               onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MemberHomeScreen(),
-                  ),
-                );
+                context.go('/member/home');
               },
             ),
           ),
@@ -340,3 +336,4 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
     );
   }
 }
+

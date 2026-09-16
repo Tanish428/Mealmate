@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
-import 'role_selection_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -203,10 +203,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const SizedBox(height: 24.0),
           CustomButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
-              );
+              context.go('/role');
             },
             text: "Create Account",
           ),
@@ -295,3 +292,4 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 }
+

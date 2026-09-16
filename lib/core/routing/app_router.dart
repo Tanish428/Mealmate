@@ -8,22 +8,22 @@ import '../../ui/auth/role_selection_screen.dart';
 
 // Onboarding
 import '../../ui/member/join_mess_screen.dart';
-import '../../ui/owner/mess creation/create_mess_screen.dart';
+import '../../ui/owner/create_mess_screen.dart';
 
 // Shells
 import '../../ui/owner/owner_main_shell.dart';
 import '../../ui/member/member_main_shell.dart';
 
 // Owner Screens
-import '../../ui/owner/dashboard/owner_dashboard_screen.dart';
-import '../../ui/owner/menu/menu_manager_screen.dart';
-import '../../ui/owner/members/members_screen.dart';
-import '../../ui/owner/settings/mess_profile_screen.dart';
+import '../../ui/owner/owner_dashboard_screen.dart';
+import '../../ui/owner/menu_manager_screen.dart';
+import '../../ui/owner/members_screen.dart';
+import '../../ui/owner/mess_profile_screen.dart';
 
 // Member Screens
 import '../../ui/member/member_home_screen.dart';
 import '../../ui/member/menu_view_screen.dart';
-import '../../ui/member/announcements/notice_board_screen.dart';
+import '../../ui/member/attendance_toggle_screen.dart';
 import '../../ui/member/profile_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -123,12 +123,12 @@ final GoRouter appRouter = GoRouter(
             ),
           ],
         ),
-        // Branch 2: Notices
+        // Branch 2: Attendance
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/member/notices',
-              builder: (context, state) => const NoticeBoardScreen(),
+              path: '/member/attendance',
+              builder: (context, state) => const AttendanceToggleScreen(),
             ),
           ],
         ),
@@ -145,3 +145,5 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
+
+

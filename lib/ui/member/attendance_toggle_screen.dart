@@ -102,7 +102,7 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+
     );
   }
 
@@ -578,3 +578,4 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     );
   }
 }
+

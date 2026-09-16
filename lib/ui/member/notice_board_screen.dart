@@ -62,7 +62,7 @@ class NoticeBoardScreen extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 32.0),
-              child: _buildHeader(colorScheme, textTheme),
+              child: _buildHeader(context, colorScheme, textTheme),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -92,7 +92,7 @@ class NoticeBoardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
     return Row(
       children: [
         Container(
@@ -102,9 +102,7 @@ class NoticeBoardScreen extends StatelessWidget {
           ),
           child: IconButton(
             icon: Icon(Icons.arrow_back, color: colorScheme.primary),
-            onPressed: () {
-              // Empty callback per architectural rules
-            },
+            onPressed: () { if (Navigator.of(context).canPop()) Navigator.pop(context); },
           ),
         ),
         const SizedBox(width: 16.0),
@@ -222,3 +220,6 @@ class NoticeBoardScreen extends StatelessWidget {
     );
   }
 }
+
+
+

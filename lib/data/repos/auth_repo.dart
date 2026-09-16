@@ -7,10 +7,9 @@ class AuthRepo {
   final FirebaseFirestore _firestore;
 
   AuthRepo({
-    required fb_auth.FirebaseAuth auth,
-    required FirebaseFirestore firestore,
-  })  : _auth = auth,
-        _firestore = firestore;
+    required this._auth,
+    required this._firestore,
+  });
 
   Stream<fb_auth.User?> authStateChanges() {
     return _auth.authStateChanges();

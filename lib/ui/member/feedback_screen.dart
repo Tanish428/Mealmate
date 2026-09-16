@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../common/custom_textfield.dart';
-import '../../common/custom_button.dart';
+import '../common/custom_textfield.dart';
+import '../common/custom_button.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -79,9 +79,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           ),
           child: IconButton(
             icon: Icon(Icons.arrow_back, color: colorScheme.primary),
-            onPressed: () {
-              // Empty callback per architectural rules
-            },
+            onPressed: () { if (Navigator.of(context).canPop()) Navigator.pop(context); },
           ),
         ),
         const SizedBox(width: 16.0),
@@ -326,3 +324,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 }
+
+
+

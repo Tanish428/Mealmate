@@ -4,7 +4,7 @@ import '../models/menu_model.dart';
 class MenuRepo {
   final FirebaseFirestore _firestore;
 
-  MenuRepo({required FirebaseFirestore firestore}) : _firestore = firestore;
+  MenuRepo({required this._firestore});
 
   Future<void> publishMenu(MenuModel menu) async {
     try {

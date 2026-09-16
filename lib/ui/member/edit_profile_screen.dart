@@ -39,7 +39,7 @@ class EditProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+
     );
   }
 
@@ -552,3 +552,4 @@ class _ActionsWidget extends StatelessWidget {
     );
   }
 }
+

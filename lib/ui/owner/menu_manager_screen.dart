@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 // --- Data Models ---
@@ -199,7 +200,7 @@ class _MenuHeader extends StatelessWidget {
         Column(
           children: [
             InkWell(
-              onTap: () {},
+              onTap: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
               customBorder: const CircleBorder(),
               child: Container(
                 padding: const EdgeInsets.all(12.0),
@@ -640,3 +641,6 @@ class _DashedBorderPainter extends CustomPainter {
     return oldDelegate.color != color;
   }
 }
+
+
+

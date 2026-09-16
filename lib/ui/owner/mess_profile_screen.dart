@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../common/custom_textfield.dart';
-import '../../common/custom_button.dart';
+import 'package:go_router/go_router.dart';
+import '../common/custom_textfield.dart';
+import '../common/custom_button.dart';
 
 class MessProfileScreen extends StatefulWidget {
   const MessProfileScreen({super.key});
@@ -65,9 +66,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
           ),
           child: IconButton(
             icon: Icon(Icons.arrow_back, color: colorScheme.primary),
-            onPressed: () {
-              // Empty callback per rules
-            },
+            onPressed: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
           ),
         ),
         const SizedBox(width: 16.0),
@@ -213,9 +212,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
             width: double.infinity,
             child: CustomButton(
               text: "Save",
-              onPressed: () {
-                // Empty callback per rules
-              },
+              onPressed: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
             ),
           ),
         ],
@@ -298,9 +295,11 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
       text: "Log Out",
       isPrimary: false,
       icon: Icons.logout,
-      onPressed: () {
-        // Empty callback per rules
-      },
+      onPressed: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
     );
   }
 }
+
+
+
+

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../common/custom_button.dart';
-import '../member/join_mess_screen.dart';
-import '../owner/mess creation/create_mess_screen.dart';
+import 'package:go_router/go_router.dart';
+
 
 enum Role { member, owner }
 
@@ -88,19 +88,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                     CustomButton(
                       onPressed: _selectedRole != null ? () {
                         if (_selectedRole == Role.member) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const JoinMessScreen(),
-                            ),
-                          );
+                          context.go('/join-mess');
                         } else if (_selectedRole == Role.owner) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateMessScreen(),
-                            ),
-                          );
+                          context.go('/create-mess');
                         }
                       } : null,
                       text: "Continue",
@@ -185,5 +175,7 @@ class _RoleCard extends StatelessWidget {
     );
   }
 }
+
+
 
 

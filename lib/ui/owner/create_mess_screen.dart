@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../common/custom_textfield.dart';
-import '../../common/custom_button.dart';
-import '../owner_main_screen.dart';
+import '../common/custom_textfield.dart';
+import '../common/custom_button.dart';
+import 'package:go_router/go_router.dart';
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {
@@ -104,12 +104,7 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
                       text: 'Create Mess',
                       // trailingIcon logic isn't natively in CustomButton, but we can just use text
                       onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const OwnerMainScreen(),
-                          ),
-                        );
+                        context.go('/owner/dashboard');
                       },
                     ),
                   ),
@@ -128,7 +123,7 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          onTap: () {},
+          onTap: () { if (Navigator.of(context).canPop()) Navigator.pop(context); },
           borderRadius: BorderRadius.circular(50),
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -440,3 +435,7 @@ class _MealChip extends StatelessWidget {
     );
   }
 }
+
+
+
+

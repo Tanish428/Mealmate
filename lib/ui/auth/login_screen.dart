@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
-import 'signup_screen.dart';
-import 'role_selection_screen.dart';
+
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -178,10 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 24.0),
           CustomButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
-              );
+              context.go('/role');
             },
             text: "Login",
           ),
@@ -232,10 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Center(
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SignupScreen()),
-          );
+          context.go('/signup');
         },
         child: RichText(
           text: TextSpan(
@@ -259,3 +253,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+

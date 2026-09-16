@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'menu_view_screen.dart';
 import 'attendance_toggle_screen.dart';
 import 'profile_screen.dart';
-import 'feedback/feedback_screen.dart';
-import 'announcements/notice_board_screen.dart';
+import 'feedback_screen.dart';
+import 'notice_board_screen.dart';
 class MemberHomeScreen extends StatefulWidget {
   const MemberHomeScreen({super.key});
 
@@ -79,7 +79,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(primaryRed, textGray, _currentIndex),
+
     );
   }
 
@@ -840,3 +840,5 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     );
   }
 }
+
+
