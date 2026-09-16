@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'member_home_screen.dart';
-import 'menu_view_screen.dart';
-import 'attendance_toggle_screen.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -67,54 +64,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: TextSpan(
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: textDark,
-                ),
-                children: [
-                  const TextSpan(text: 'Pro'),
-                  TextSpan(
-                    text: 'file',
-                    style: TextStyle(color: primaryRed),
-                  ),
-                ],
-              ),
+        RichText(
+          text: TextSpan(
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textDark,
             ),
-            const SizedBox(height: 4.0),
-            Text(
-              'Your MealMate account',
-              style: TextStyle(
-                color: textGray,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+            children: [
+              const TextSpan(text: 'Pro'),
+              TextSpan(
+                text: 'file',
+                style: TextStyle(color: primaryRed),
               ),
             ],
           ),
-          child: IconButton(
-            icon: Icon(Icons.settings_outlined, color: textDark),
-            onPressed: () {},
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          'Your MealMate account',
+          style: TextStyle(
+            color: textGray,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -333,7 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 12.0),
             Expanded(child: _buildStatCard('Day Streak', '14', Icons.local_fire_department, orange, lightOrange)),
             const SizedBox(width: 12.0),
-            Expanded(child: _buildStatCard('CO2 Saved', '2.5kg', Icons.cloud_outlined, green, lightGreen)),
+            Expanded(child: _buildStatCard('Food Saved', '2.5kg', Icons.eco, green, lightGreen)),
           ],
         ),
       ],
@@ -395,7 +370,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(width: 12.0),
           Expanded(
             child: Text(
-              'Your food choices saved 2.5kg of CO2 this month! Keep it up!',
+              'Your food choices saved 2.5kg of food this month! Keep it up!',
               style: TextStyle(
                 color: green,
                 fontSize: 12,
@@ -429,134 +404,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           prefixIcon: Icon(Icons.logout, size: 18, color: primaryRed),
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30.0),
-          topRight: Radius.circular(30.0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) =>
-                          const MemberHomeScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(Icons.home, 'Home', textGray, false),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) =>
-                          const MenuViewScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(Icons.restaurant, 'Menu', textGray, false),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) =>
-                          const AttendanceToggleScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(Icons.calendar_today, 'Attendance', textGray, false),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {},
-                child: _buildNavItem(Icons.person_outline, 'Profile', primaryRed, true),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, Color color, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color),
-          if (isSelected) const SizedBox(height: 4.0),
-          if (isSelected)
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          if (!isSelected) const SizedBox(height: 4.0),
-          if (!isSelected)
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          if (isSelected) const SizedBox(height: 4.0),
-          if (isSelected)
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-        ],
-      ),
     );
   }
 }

@@ -57,27 +57,12 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   }
 
   Widget _buildHeader(ColorScheme colorScheme, TextTheme textTheme) {
-    return Row(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withAlpha(25),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back, color: colorScheme.primary),
-            onPressed: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
-          ),
-        ),
-        const SizedBox(width: 16.0),
-        Text(
-          "Mess Profile",
-          style: textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-      ],
+    return Text(
+      "Mess Profile",
+      style: textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
     );
   }
 

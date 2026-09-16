@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 // --- Data Models ---
@@ -17,6 +16,22 @@ class DishModel {
     this.hasDessert = false,
     this.imageUrl,
   });
+
+  DishModel copyWith({
+    String? id,
+    String? name,
+    bool? isVegetarian,
+    bool? hasDessert,
+    String? imageUrl,
+  }) {
+    return DishModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      isVegetarian: isVegetarian ?? this.isVegetarian,
+      hasDessert: hasDessert ?? this.hasDessert,
+      imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
 }
 
 class MealSlotModel {
@@ -35,6 +50,24 @@ class MealSlotModel {
     required this.iconData,
     required this.dishes,
   });
+
+  MealSlotModel copyWith({
+    String? id,
+    String? title,
+    String? timeRange,
+    bool? isAvailable,
+    IconData? iconData,
+    List<DishModel>? dishes,
+  }) {
+    return MealSlotModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      timeRange: timeRange ?? this.timeRange,
+      isAvailable: isAvailable ?? this.isAvailable,
+      iconData: iconData ?? this.iconData,
+      dishes: dishes ?? this.dishes,
+    );
+  }
 }
 
 // --- Main Screen ---
@@ -48,16 +81,12 @@ class MenuManagerScreen extends StatefulWidget {
 class _MenuManagerScreenState extends State<MenuManagerScreen> {
   late DateTime _selectedDate;
   late List<DateTime> _weekDates;
-  late List<MealSlotModel> _mealSlots;
+  late Map<String, List<MealSlotModel>> _menuByDate;
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedDate = DateTime.now();
-    _weekDates = List.generate(7, (index) => DateTime.now().add(Duration(days: index)));
-    
-    // Mock Data
-    _mealSlots = [
+  String _dateKey(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
+
+  List<MealSlotModel> _createDefaultSlots() {
+    return [
       MealSlotModel(
         id: '1',
         title: 'Breakfast',
@@ -84,34 +113,552 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
         id: '3',
         title: 'Dinner',
         timeRange: '7:30 PM - 9:30 PM',
-        isAvailable: false,
+        isAvailable: true,
         iconData: Icons.nights_stay_outlined,
-        dishes: [],
+        dishes: [
+          DishModel(id: 'd5', name: 'Dal Tadka & Roti', isVegetarian: true),
+        ],
       ),
     ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now();
+    _weekDates = List.generate(7, (index) => DateTime.now().add(Duration(days: index)));
+    _menuByDate = {
+      _dateKey(_selectedDate): _createDefaultSlots(),
+    };
+  }
+
+  List<MealSlotModel> get _mealSlots {
+    final key = _dateKey(_selectedDate);
+    if (!_menuByDate.containsKey(key)) {
+      _menuByDate[key] = _createDefaultSlots();
+    }
+    return _menuByDate[key]!;
   }
 
   void _onDateSelected(DateTime date) {
     setState(() {
       _selectedDate = date;
+      final key = _dateKey(date);
+      if (!_menuByDate.containsKey(key)) {
+        _menuByDate[key] = _createDefaultSlots();
+      }
     });
   }
 
   void _onToggleSlot(String id, bool value) {
     setState(() {
-      final index = _mealSlots.indexWhere((slot) => slot.id == id);
+      final slots = _mealSlots;
+      final index = slots.indexWhere((slot) => slot.id == id);
       if (index != -1) {
-        final slot = _mealSlots[index];
-        _mealSlots[index] = MealSlotModel(
-          id: slot.id,
-          title: slot.title,
-          timeRange: slot.timeRange,
-          isAvailable: value,
-          iconData: slot.iconData,
-          dishes: slot.dishes,
-        );
+        slots[index] = slots[index].copyWith(isAvailable: value);
       }
     });
+  }
+
+  void _addDish({
+    required String slotId,
+    required String name,
+    required bool isVegetarian,
+    required bool hasDessert,
+  }) {
+    setState(() {
+      final slots = _mealSlots;
+      final slotIndex = slots.indexWhere((s) => s.id == slotId);
+      if (slotIndex != -1) {
+        final newDish = DishModel(
+          id: 'dish_${DateTime.now().millisecondsSinceEpoch}',
+          name: name.trim(),
+          isVegetarian: isVegetarian,
+          hasDessert: hasDessert,
+        );
+        final updatedDishes = List<DishModel>.from(slots[slotIndex].dishes)..add(newDish);
+        slots[slotIndex] = slots[slotIndex].copyWith(dishes: updatedDishes);
+      }
+    });
+
+    final slotTitle = _mealSlots.firstWhere((s) => s.id == slotId).title;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text("Added '$name' to $slotTitle")),
+          ],
+        ),
+        backgroundColor: Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _editDish({
+    required String slotId,
+    required String dishId,
+    required String name,
+    required bool isVegetarian,
+    required bool hasDessert,
+  }) {
+    setState(() {
+      final slots = _mealSlots;
+      final slotIndex = slots.indexWhere((s) => s.id == slotId);
+      if (slotIndex != -1) {
+        final dishes = List<DishModel>.from(slots[slotIndex].dishes);
+        final dishIndex = dishes.indexWhere((d) => d.id == dishId);
+        if (dishIndex != -1) {
+          dishes[dishIndex] = dishes[dishIndex].copyWith(
+            name: name.trim(),
+            isVegetarian: isVegetarian,
+            hasDessert: hasDessert,
+          );
+          slots[slotIndex] = slots[slotIndex].copyWith(dishes: dishes);
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text("Updated '$name'")),
+          ],
+        ),
+        backgroundColor: Colors.blue.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _deleteDish({
+    required String slotId,
+    required DishModel dish,
+  }) {
+    setState(() {
+      final slots = _mealSlots;
+      final slotIndex = slots.indexWhere((s) => s.id == slotId);
+      if (slotIndex != -1) {
+        final updatedDishes = List<DishModel>.from(slots[slotIndex].dishes)
+          ..removeWhere((d) => d.id == dish.id);
+        slots[slotIndex] = slots[slotIndex].copyWith(dishes: updatedDishes);
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.delete, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text("Removed '${dish.name}'")),
+          ],
+        ),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _confirmDeleteDish({
+    required MealSlotModel slot,
+    required DishModel dish,
+  }) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+          title: const Row(
+            children: [
+              Icon(Icons.delete_outline, color: Colors.red),
+              SizedBox(width: 8),
+              Text("Delete Dish", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text("Are you sure you want to remove '${dish.name}' from ${slot.title}?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: Text("Cancel", style: TextStyle(color: Colors.grey.shade700)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+              ),
+              onPressed: () {
+                Navigator.of(dialogCtx).pop();
+                _deleteDish(slotId: slot.id, dish: dish);
+              },
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddOrEditDishDialog({
+    required MealSlotModel slot,
+    DishModel? existingDish,
+  }) {
+    final bool isEditing = existingDish != null;
+    final nameController = TextEditingController(text: existingDish?.name ?? '');
+    bool isVegetarian = existingDish?.isVegetarian ?? true;
+    bool hasDessert = existingDish?.hasDessert ?? false;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isEditing ? Icons.edit : Icons.restaurant_menu,
+                      color: Colors.red.shade700,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isEditing ? "Edit Dish" : "Add Dish",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "for ${slot.title}",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.normal,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: double.maxFinite,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Dish Name Field
+                      const Text(
+                        "Dish Name",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6.0),
+                      TextField(
+                        controller: nameController,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          hintText: "e.g., Paneer Butter Masala",
+                          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                          errorText: errorMessage,
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.red.shade700, width: 1.5),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          if (errorMessage != null && val.trim().isNotEmpty) {
+                            setDialogState(() {
+                              errorMessage = null;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 18.0),
+
+                      // Food Category: Veg / Non-Veg
+                      const Text(
+                        "Dietary Preference",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8.0),
+                      Row(
+                        children: [
+                          // Vegetarian Option
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                setDialogState(() {
+                                  isVegetarian = true;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(10.0),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 8.0),
+                                decoration: BoxDecoration(
+                                  color: isVegetarian ? Colors.green.shade50 : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  border: Border.all(
+                                    color: isVegetarian ? Colors.green.shade700 : Colors.grey.shade300,
+                                    width: isVegetarian ? 2.0 : 1.0,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 14,
+                                      height: 14,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.green.shade700, width: 1.5),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                      child: Center(
+                                        child: Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade700,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8.0),
+                                    Text(
+                                      "Veg",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: isVegetarian ? FontWeight.bold : FontWeight.w500,
+                                        color: isVegetarian ? Colors.green.shade800 : Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12.0),
+
+                          // Non-Vegetarian Option
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                setDialogState(() {
+                                  isVegetarian = false;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(10.0),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 8.0),
+                                decoration: BoxDecoration(
+                                  color: !isVegetarian ? Colors.red.shade50 : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  border: Border.all(
+                                    color: !isVegetarian ? Colors.red.shade700 : Colors.grey.shade300,
+                                    width: !isVegetarian ? 2.0 : 1.0,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 14,
+                                      height: 14,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.red.shade700, width: 1.5),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                      child: Center(
+                                        child: Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade700,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8.0),
+                                    Text(
+                                      "Non-Veg",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: !isVegetarian ? FontWeight.bold : FontWeight.w500,
+                                        color: !isVegetarian ? Colors.red.shade800 : Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18.0),
+
+                      // Dessert Included Toggle
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(10.0),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6.0),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(6.0),
+                              ),
+                              child: Icon(Icons.cake_outlined, size: 18, color: Colors.red.shade700),
+                            ),
+                            const SizedBox(width: 10.0),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Dessert Included",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Served with sweet or dessert",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: hasDessert,
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  hasDessert = val;
+                                });
+                              },
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: Colors.red.shade700,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  ),
+                  onPressed: () {
+                    final enteredName = nameController.text.trim();
+                    if (enteredName.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = "Please enter a dish name";
+                      });
+                      return;
+                    }
+                    Navigator.of(dialogContext).pop();
+                    if (isEditing) {
+                      _editDish(
+                        slotId: slot.id,
+                        dishId: existingDish.id,
+                        name: enteredName,
+                        isVegetarian: isVegetarian,
+                        hasDessert: hasDessert,
+                      );
+                    } else {
+                      _addDish(
+                        slotId: slot.id,
+                        name: enteredName,
+                        isVegetarian: isVegetarian,
+                        hasDessert: hasDessert,
+                      );
+                    }
+                  },
+                  icon: Icon(isEditing ? Icons.check : Icons.add, size: 18),
+                  label: Text(
+                    isEditing ? "Save" : "Add Dish",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -146,9 +693,13 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
                 itemCount: _mealSlots.length,
                 separatorBuilder: (context, index) => const SizedBox(height: 16.0),
                 itemBuilder: (context, index) {
+                  final slot = _mealSlots[index];
                   return _MealCard(
-                    slot: _mealSlots[index],
-                    onToggle: (val) => _onToggleSlot(_mealSlots[index].id, val),
+                    slot: slot,
+                    onToggle: (val) => _onToggleSlot(slot.id, val),
+                    onAddDish: () => _showAddOrEditDishDialog(slot: slot),
+                    onEditDish: (dish) => _showAddOrEditDishDialog(slot: slot, existingDish: dish),
+                    onDeleteDish: (dish) => _confirmDeleteDish(slot: slot, dish: dish),
                   );
                 },
               ),
@@ -165,62 +716,30 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
 class _MenuHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: TextSpan(
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                  children: [
-                    const TextSpan(text: "Manage "),
-                    TextSpan(
-                      text: "Menu",
-                      style: TextStyle(color: Colors.red.shade700),
-                    ),
-                  ],
+        RichText(
+          text: TextSpan(
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-              ),
-              const SizedBox(height: 4.0),
-              Text(
-                "Plan and update your daily meals",
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
+            children: [
+              const TextSpan(text: "Manage "),
+              TextSpan(
+                text: "Menu",
+                style: TextStyle(color: Colors.red.shade700),
               ),
             ],
           ),
         ),
-        Column(
-          children: [
-            InkWell(
-              onTap: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
-              customBorder: const CircleBorder(),
-              child: Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.add, color: Colors.red.shade700),
+        const SizedBox(height: 4.0),
+        Text(
+          "Plan and update your daily meals",
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey.shade600,
               ),
-            ),
-            const SizedBox(height: 4.0),
-            Text(
-              "Add Meal",
-              style: TextStyle(
-                color: Colors.red.shade700,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ),
       ],
     );
@@ -343,10 +862,16 @@ class _DateOverviewHeader extends StatelessWidget {
 class _MealCard extends StatelessWidget {
   final MealSlotModel slot;
   final ValueChanged<bool> onToggle;
+  final VoidCallback onAddDish;
+  final ValueChanged<DishModel> onEditDish;
+  final ValueChanged<DishModel> onDeleteDish;
 
   const _MealCard({
     required this.slot,
     required this.onToggle,
+    required this.onAddDish,
+    required this.onEditDish,
+    required this.onDeleteDish,
   });
 
   @override
@@ -439,14 +964,49 @@ class _MealCard extends StatelessWidget {
               itemCount: slot.dishes.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12.0),
               itemBuilder: (context, index) {
-                return _DishListItem(dish: slot.dishes[index]);
+                final dish = slot.dishes[index];
+                return _DishListItem(
+                  dish: dish,
+                  onEdit: () => onEditDish(dish),
+                  onDelete: () => onDeleteDish(dish),
+                );
               },
+            ),
+          ],
+
+          if (slot.isAvailable && slot.dishes.isEmpty) ...[
+            const SizedBox(height: 12.0),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.grey.shade500),
+                  const SizedBox(width: 8.0),
+                  Text(
+                    "No dishes added yet for ${slot.title}",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
           
           if (slot.isAvailable) ...[
             const SizedBox(height: 16.0),
-            _AddDishButton(onTap: () {}),
+            _AddDishButton(
+              slotTitle: slot.title,
+              onTap: onAddDish,
+            ),
           ]
         ],
       ),
@@ -456,8 +1016,14 @@ class _MealCard extends StatelessWidget {
 
 class _DishListItem extends StatelessWidget {
   final DishModel dish;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _DishListItem({required this.dish});
+  const _DishListItem({
+    required this.dish,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -468,7 +1034,7 @@ class _DishListItem extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: dish.isVegetarian ? Colors.green.shade50 : Colors.red.shade50,
             borderRadius: BorderRadius.circular(8.0),
           ),
           child: dish.imageUrl != null && dish.imageUrl!.isNotEmpty
@@ -476,25 +1042,31 @@ class _DishListItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8.0),
                   child: Image.network(dish.imageUrl!, fit: BoxFit.cover),
                 )
-              : Icon(Icons.fastfood, color: Colors.grey.shade400, size: 20),
+              : Icon(
+                  Icons.restaurant_menu,
+                  color: dish.isVegetarian ? Colors.green.shade700 : Colors.red.shade700,
+                  size: 20,
+                ),
         ),
         const SizedBox(width: 12.0),
         
         // Veg/Non-Veg Indicator
         Container(
-          width: 12,
-          height: 12,
+          width: 14,
+          height: 14,
           decoration: BoxDecoration(
             border: Border.all(
-              color: dish.isVegetarian ? Colors.green : Colors.red,
+              color: dish.isVegetarian ? Colors.green.shade700 : Colors.red.shade700,
+              width: 1.5,
             ),
+            borderRadius: BorderRadius.circular(2.0),
           ),
           child: Center(
             child: Container(
-              width: 6,
-              height: 6,
+              width: 7,
+              height: 7,
               decoration: BoxDecoration(
-                color: dish.isVegetarian ? Colors.green : Colors.red,
+                color: dish.isVegetarian ? Colors.green.shade700 : Colors.red.shade700,
                 shape: BoxShape.circle,
               ),
             ),
@@ -515,31 +1087,43 @@ class _DishListItem extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (dish.hasDessert) ...[
-                const SizedBox(height: 4.0),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(4.0),
+              Row(
+                children: [
+                  Text(
+                    dish.isVegetarian ? "Veg" : "Non-Veg",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: dish.isVegetarian ? Colors.green.shade700 : Colors.red.shade700,
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.cake, size: 10, color: Colors.red.shade700),
-                      const SizedBox(width: 4.0),
-                      Text(
-                        "Dessert Included",
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade700,
-                        ),
+                  if (dish.hasDessert) ...[
+                    const SizedBox(width: 6.0),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.0),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(4.0),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.cake, size: 10, color: Colors.red.shade700),
+                          const SizedBox(width: 3.0),
+                          Text(
+                            "Dessert Included",
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),
@@ -549,14 +1133,17 @@ class _DishListItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.edit_outlined, size: 20, color: Colors.grey.shade500),
-              onPressed: () {},
+              icon: Icon(Icons.edit_outlined, size: 20, color: Colors.blue.shade600),
+              tooltip: "Edit Dish",
+              onPressed: onEdit,
               constraints: const BoxConstraints(),
               padding: const EdgeInsets.all(4.0),
             ),
+            const SizedBox(width: 4.0),
             IconButton(
-              icon: Icon(Icons.close, size: 20, color: Colors.red.shade700),
-              onPressed: () {},
+              icon: Icon(Icons.delete_outline, size: 20, color: Colors.red.shade700),
+              tooltip: "Delete Dish",
+              onPressed: onDelete,
               constraints: const BoxConstraints(),
               padding: const EdgeInsets.all(4.0),
             ),
@@ -568,9 +1155,13 @@ class _DishListItem extends StatelessWidget {
 }
 
 class _AddDishButton extends StatelessWidget {
+  final String slotTitle;
   final VoidCallback onTap;
 
-  const _AddDishButton({required this.onTap});
+  const _AddDishButton({
+    required this.slotTitle,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -588,7 +1179,7 @@ class _AddDishButton extends StatelessWidget {
               Icon(Icons.add, size: 18, color: Colors.red.shade700),
               const SizedBox(width: 4.0),
               Text(
-                "Add Dish",
+                "Add Dish to $slotTitle",
                 style: TextStyle(
                   color: Colors.red.shade700,
                   fontWeight: FontWeight.bold,

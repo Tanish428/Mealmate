@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'menu_manager_screen.dart';
 import 'preparation_planner_screen.dart';
-import 'mess_profile_screen.dart';
 import 'waste_reports_screen.dart';
 import 'surplus_allocation_screen.dart';
-import 'members_screen.dart';
 import 'broadcast_screen.dart';
 import 'owner_feedback_screen.dart';
 import '../common/custom_button.dart';
-import '../common/stat_card.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToMenu;
@@ -30,9 +26,7 @@ class OwnerDashboardScreen extends StatelessWidget {
               const SizedBox(height: 24.0),
               const _NextMealCard(),
               const SizedBox(height: 32.0),
-              _StatsSection(onNavigateToMembers: onNavigateToMembers),
-              const SizedBox(height: 32.0),
-              _QuickActionsSection(onNavigateToMenu: onNavigateToMenu),
+              const _QuickActionsSection(),
               const SizedBox(height: 24.0),
             ],
           ),
@@ -47,50 +41,21 @@ class _DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Overview",
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 4.0),
-            Text(
-              "DDU Campus Mess",
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MessProfileScreen(),
-                  ),
-                );
-              },
-              customBorder: const CircleBorder(),
-              child: Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.settings, color: Colors.red.shade700),
+        Text(
+          "Overview",
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-            ),
-          ],
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          "DDU Campus Mess",
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey.shade600,
+              ),
         ),
       ],
     );
@@ -294,149 +259,97 @@ class _NextMealCard extends StatelessWidget {
   }
 }
 
-class _StatsSection extends StatelessWidget {
-  final VoidCallback? onNavigateToMembers;
-  const _StatsSection({this.onNavigateToMembers});
+class _QuickActionsSection extends StatelessWidget {
+  const _QuickActionsSection();
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Today at a Glance",
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            Text("Mon, 15 Sep 2025",
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.grey.shade600)),
-          ],
+        Text(
+          "Quick Actions",
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16.0),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  if (onNavigateToMembers != null) {
-                    onNavigateToMembers!();
-                  } else {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MembersScreen()));
-                  }
-                },
-                child: StatCard(
-                  metric: "50",
-                  title: "Active Members",
-                  icon: Icons.group,
-                  iconColor: Colors.red.shade700,
-                  iconBackgroundColor: Colors.red.shade50,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 8.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.campaign,
+                  label: "Broadcast",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BroadcastScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-            const SizedBox(width: 12.0),
-            Expanded(
-              child: StatCard(
-                metric: "₹12,500",
-                title: "Monthly\nRevenue",
-                icon: Icons.account_balance_wallet,
-                iconColor: Colors.green.shade700,
-                iconBackgroundColor: Colors.green.shade50,
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.eco,
+                  label: "Waste",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WasteReportsScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickActionsSection extends StatelessWidget {
-  final VoidCallback? onNavigateToMenu;
-  
-  const _QuickActionsSection({this.onNavigateToMenu});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Quick Actions",
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16.0),
-        Wrap(
-          spacing: 12.0,
-          runSpacing: 16.0,
-          alignment: WrapAlignment.spaceEvenly,
-          children: [
-            _QuickActionItem(
-              icon: Icons.restaurant_menu,
-              label: "Edit Menu",
-              onTap: () {
-                if (onNavigateToMenu != null) {
-                  onNavigateToMenu!();
-                } else {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuManagerScreen()));
-                }
-              },
-            ),
-            _QuickActionItem(
-              icon: Icons.campaign,
-              label: "Broadcast",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BroadcastScreen(),
-                  ),
-                );
-              },
-            ),
-            _QuickActionItem(
-              icon: Icons.eco,
-              label: "Waste",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const WasteReportsScreen(),
-                  ),
-                );
-              },
-            ),
-            _QuickActionItem(
-              icon: Icons.volunteer_activism,
-              label: "Surplus",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SurplusAllocationScreen(),
-                  ),
-                );
-              },
-            ),
-            _QuickActionItem(
-              icon: Icons.chat_bubble_outline,
-              label: "Feedback",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OwnerFeedbackScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.volunteer_activism,
+                  label: "Surplus",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SurplusAllocationScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Expanded(
+                child: _QuickActionItem(
+                  icon: Icons.chat_bubble_outline,
+                  label: "Feedback",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OwnerFeedbackScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -458,21 +371,30 @@ class _QuickActionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             decoration: BoxDecoration(
               color: Colors.red.shade50,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.red.shade700, size: 28),
+            child: Icon(icon, color: Colors.red.shade700, size: 24),
           ),
           const SizedBox(height: 8.0),
-          Text(label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  )),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+          ),
         ],
       ),
     );

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'member_home_screen.dart';
-import 'menu_view_screen.dart';
-import 'profile_screen.dart';
 
 class AttendanceToggleScreen extends StatefulWidget {
   const AttendanceToggleScreen({super.key});
@@ -11,7 +8,6 @@ class AttendanceToggleScreen extends StatefulWidget {
 }
 
 class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
-  final int _currentIndex = 2;
 
   final Color bgColor = const Color(0xFFFAF7F5);
   final Color primaryRed = const Color(0xFFC74330);
@@ -107,52 +103,39 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(
+        Text.rich(
+          TextSpan(
+            children: [
               TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Manage ',
-                    style: TextStyle(
-                      color: textDark,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  TextSpan(
-                    text: 'Attendance',
-                    style: TextStyle(
-                      color: primaryRed,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+                text: 'Manage ',
+                style: TextStyle(
+                  color: textDark,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
-            const SizedBox(height: 4.0),
-            Text(
-              'Plan your meals, avoid food waste.',
-              style: TextStyle(
-                color: textGray,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+              TextSpan(
+                text: 'Attendance',
+                style: TextStyle(
+                  color: primaryRed,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
-          ],
-        ),
-        Container(
-          padding: const EdgeInsets.all(10.0),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
+            ],
           ),
-          child: Icon(Icons.calendar_month_outlined, color: primaryRed, size: 24),
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          'Plan your meals, avoid food waste.',
+          style: TextStyle(
+            color: textGray,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -456,126 +439,6 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
       ),
     );
   }
-
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.0),
-          topRight: Radius.circular(30.0),
-        ),
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) => const MemberHomeScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(Icons.home, 'Home', _currentIndex == 0 ? primaryRed : textGray, _currentIndex == 0),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) => const MenuViewScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(Icons.restaurant, 'Menu', _currentIndex == 1 ? primaryRed : textGray, _currentIndex == 1),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {},
-                child: _buildNavItem(Icons.calendar_today, 'Attendance', _currentIndex == 2 ? primaryRed : textGray, _currentIndex == 2),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) => const ProfileScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(Icons.person_outline, 'Profile', _currentIndex == 3 ? primaryRed : textGray, _currentIndex == 3),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, Color color, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color),
-          if (isSelected) const SizedBox(height: 4.0),
-          if (isSelected)
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          if (!isSelected) const SizedBox(height: 4.0),
-          if (!isSelected)
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          if (isSelected) const SizedBox(height: 4.0),
-          if (isSelected)
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
+
 

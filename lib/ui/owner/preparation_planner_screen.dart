@@ -8,29 +8,22 @@ class PreparationPlannerScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFDFBF7),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    _PrepHeader(),
-                    SizedBox(height: 24.0),
-                    _HeroStatsCard(),
-                    SizedBox(height: 24.0),
-                    _EcoImpactBanner(),
-                    SizedBox(height: 24.0),
-                    _MenuQuantitiesSection(),
-                    SizedBox(height: 24.0),
-                    _KitchenSummaryCard(),
-                  ],
-                ),
-              ),
-            ),
-            const _BottomActionArea(),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              _PrepHeader(),
+              SizedBox(height: 24.0),
+              _HeroStatsCard(),
+              SizedBox(height: 24.0),
+              _EcoImpactBanner(),
+              SizedBox(height: 24.0),
+              _MenuQuantitiesSection(),
+              SizedBox(height: 24.0),
+              _KitchenSummaryCard(),
+            ],
+          ),
         ),
       ),
     );
@@ -265,19 +258,13 @@ class _EcoImpactBanner extends StatelessWidget {
           Icon(Icons.eco, color: Colors.green.shade700, size: 28),
           const SizedBox(width: 16.0),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("8 members opted out.",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade800,
-                        fontSize: 14)),
-                const SizedBox(height: 2.0),
-                Text("You are saving approx. 2.5 kg of food today!",
-                    style: TextStyle(
-                        color: Colors.green.shade700, fontSize: 12, height: 1.3)),
-              ],
+            child: Text(
+              "8 members opted out.",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.green.shade800,
+                fontSize: 14,
+              ),
             ),
           ),
           const SizedBox(width: 12.0),
@@ -516,7 +503,6 @@ class _KitchenSummaryCard extends StatelessWidget {
               _SummaryColumn(icon: Icons.group, value: "42", label: "Members\nAttending", color: Colors.red.shade700),
               _SummaryColumn(icon: Icons.remove_circle_outline, value: "8", label: "Opted\nOut", color: Colors.red.shade700),
               _SummaryColumn(icon: Icons.room_service, value: "3", label: "Dishes\n", color: Colors.red.shade700),
-              _SummaryColumn(icon: Icons.eco, value: "2.5 kg", label: "Est. Food\nSaved", color: Colors.green.shade700),
             ],
           ),
         ],
@@ -558,54 +544,6 @@ class _SummaryColumn extends StatelessWidget {
                   color: Colors.grey.shade600,
                   height: 1.2)),
         ],
-      ),
-    );
-  }
-}
-
-class _BottomActionArea extends StatelessWidget {
-  const _BottomActionArea();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          )
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.shade700,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          elevation: 0,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.download, size: 20),
-            SizedBox(width: 8.0),
-            Text(
-              "Download Prep List",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

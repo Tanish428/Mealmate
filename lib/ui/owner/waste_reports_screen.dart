@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../data/models/analytics_model.dart';
+import '../../logic/controllers/analytics_controller.dart';
 import '../common/stat_card.dart';
-import '../../data/repos/mock/mock_ui_repos.dart';
-
-class ChartData {
-  final String label;
-  final double standardCapacity;
-  final double actualPrepared;
-
-  const ChartData({
-    required this.label,
-    required this.standardCapacity,
-    required this.actualPrepared,
-  });
-}
 
 class InsightData {
   final IconData icon;
@@ -34,61 +24,40 @@ class WasteReportsScreen extends StatefulWidget {
 }
 
 class _WasteReportsScreenState extends State<WasteReportsScreen> {
-  String _selectedTimeframe = "This Month";
-  
-  final List<String> _timeframes = ["This Week", "This Month", "All Time"];
-  final analytics = MockUIRepos.analytics;
-
-  late final List<ChartData> _chartData = [
-    ChartData(label: "Week 1", standardCapacity: analytics.weeklyStandardCapacity[0], actualPrepared: analytics.weeklyActualPrep[0]),
-    ChartData(label: "Week 2", standardCapacity: analytics.weeklyStandardCapacity[1], actualPrepared: analytics.weeklyActualPrep[1]),
-    ChartData(label: "Week 3", standardCapacity: analytics.weeklyStandardCapacity[2], actualPrepared: analytics.weeklyActualPrep[2]),
-    ChartData(label: "Week 4", standardCapacity: analytics.weeklyStandardCapacity[3], actualPrepared: analytics.weeklyActualPrep[3]),
-  ];
-
-  late final List<InsightData> _insights = [
-    InsightData(
-      icon: Icons.group_off,
-      title: "Average Daily Opt-outs",
-      trailingText: analytics.averageOptOuts,
-    ),
-    InsightData(
-      icon: Icons.restaurant_menu,
-      title: "Most Skipped Meal",
-      trailingText: analytics.mostSkippedMeal,
-    ),
-    InsightData(
-      icon: Icons.calendar_today,
-      title: "Busiest Day",
-      trailingText: analytics.busiestDay,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 24),
-              _buildTimeframeSelector(),
-              const SizedBox(height: 24),
-              _buildHeroMetricsRow(context),
-              const SizedBox(height: 24),
-              _buildTrendChartCard(context),
-              const SizedBox(height: 24),
-              _buildKeyInsightsSection(context),
-              const SizedBox(height: 24),
-              _buildEcoImpactBanner(context),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+    return ChangeNotifierProvider(
+      create: (_) => AnalyticsController(),
+      child: Consumer<AnalyticsController>(
+        builder: (context, controller, _) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFFDFBF7),
+            body: SafeArea(
+              child: controller.isLoading && controller.analytics == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(context),
+                          const SizedBox(height: 24),
+                          _buildTimeframeSelector(context, controller),
+                          const SizedBox(height: 24),
+                          _buildHeroMetricsRow(context, controller),
+                          const SizedBox(height: 24),
+                          _buildTrendChartCard(context, controller),
+                          const SizedBox(height: 24),
+                          _buildKeyInsightsSection(context, controller),
+                          const SizedBox(height: 24),
+                          _buildEcoImpactBanner(context, controller),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -136,7 +105,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
     );
   }
 
-  Widget _buildTimeframeSelector() {
+  Widget _buildTimeframeSelector(BuildContext context, AnalyticsController controller) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -144,16 +113,15 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
-        children: _timeframes.map((timeframe) {
-          final isSelected = timeframe == _selectedTimeframe;
+        children: AnalyticsController.availableTimeframes.map((timeframe) {
+          final isSelected = timeframe == controller.selectedTimeframe;
           return Expanded(
             child: GestureDetector(
               onTap: () {
-                setState(() {
-                  _selectedTimeframe = timeframe;
-                });
+                controller.setTimeframe(timeframe);
               },
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.red.shade700 : Colors.transparent,
@@ -175,35 +143,44 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
     );
   }
 
-  Widget _buildHeroMetricsRow(BuildContext context) {
+  Widget _buildHeroMetricsRow(BuildContext context, AnalyticsController controller) {
+    final analyticsData = controller.analytics;
+    final String prepAccuracy = analyticsData != null
+        ? "${analyticsData.prepAccuracyPercentage.toStringAsFixed(1)}%"
+        : "96.4%";
+    final String ghostMeals = analyticsData != null
+        ? "${analyticsData.ghostMealsPrevented}"
+        : "362";
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: StatCard(
-            metric: analytics.totalFoodSaved,
-            title: "Food Saved",
-            subtitle: "This month",
-            icon: Icons.eco,
-            iconColor: Colors.green.shade800,
-            iconBackgroundColor: Colors.green.shade50,
+            metric: prepAccuracy,
+            title: "Prep Accuracy",
+            subtitle: "You are cooking almost exactly what is needed.",
+            icon: Icons.track_changes,
+            iconColor: Colors.red.shade700,
+            iconBackgroundColor: Colors.red.shade50,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: StatCard(
-            metric: analytics.totalCostSaved,
-            title: "Cost Saved",
-            subtitle: "This month",
-            icon: Icons.account_balance_wallet,
-            iconColor: Colors.red.shade700,
-            iconBackgroundColor: Colors.red.shade50,
+            metric: ghostMeals,
+            title: "Ghost Meals Prevented",
+            icon: Icons.no_meals,
+            iconColor: Colors.orange.shade800,
+            iconBackgroundColor: Colors.orange.shade50,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTrendChartCard(BuildContext context) {
+  Widget _buildTrendChartCard(BuildContext context, AnalyticsController controller) {
+    final trendData = controller.analytics?.weeklyTrend ?? [];
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -236,7 +213,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Standard capacity vs actual preparation",
+                      "Standard capacity vs actual preparation (${controller.selectedTimeframe.toLowerCase()})",
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
                           ),
@@ -283,13 +260,32 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          _CustomBarChart(data: _chartData),
+          _CustomBarChart(data: trendData),
         ],
       ),
     );
   }
 
-  Widget _buildKeyInsightsSection(BuildContext context) {
+  Widget _buildKeyInsightsSection(BuildContext context, AnalyticsController controller) {
+    final analyticsData = controller.analytics;
+    final insights = [
+      InsightData(
+        icon: Icons.group_off,
+        title: "Average Daily Opt-outs",
+        trailingText: analyticsData?.averageOptOuts ?? "8 members / meal",
+      ),
+      InsightData(
+        icon: Icons.restaurant_menu,
+        title: "Most Skipped Meal",
+        trailingText: analyticsData?.mostSkippedMeal ?? "Dinner",
+      ),
+      InsightData(
+        icon: Icons.calendar_today,
+        title: "Busiest Day",
+        trailingText: analyticsData?.busiestDay ?? "Sunday (Lunch)",
+      ),
+    ];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -313,7 +309,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                 ),
           ),
           const SizedBox(height: 16),
-          ..._insights.map((insight) => Padding(
+          ...insights.map((insight) => Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Row(
                   children: [
@@ -349,7 +345,14 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
     );
   }
 
-  Widget _buildEcoImpactBanner(BuildContext context) {
+  Widget _buildEcoImpactBanner(BuildContext context, AnalyticsController controller) {
+    final analyticsData = controller.analytics;
+    final timeframePeriod = controller.selectedTimeframe == "This Week"
+        ? "this week"
+        : controller.selectedTimeframe == "All Time"
+            ? "overall"
+            : "this month";
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -376,10 +379,11 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                 children: [
                   const TextSpan(text: "Great job! ", style: TextStyle(fontWeight: FontWeight.bold)),
                   const TextSpan(text: "You saved approximately "),
-                  TextSpan(text: analytics.totalFoodSaved, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const TextSpan(text: " of food this month. That's about "),
-                  const TextSpan(text: "350 kg", style: TextStyle(fontWeight: FontWeight.bold)),
-                  const TextSpan(text: " CO2 emissions avoided."),
+                  TextSpan(
+                    text: analyticsData?.totalFoodSaved ?? "128 kg",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: " of food $timeframePeriod."),
                 ],
               ),
             ),
@@ -391,13 +395,27 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
 }
 
 class _CustomBarChart extends StatelessWidget {
-  final List<ChartData> data;
+  final List<WeeklyTrendPoint> data;
   const _CustomBarChart({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final maxY = 60.0;
-    
+    if (data.isEmpty) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: Text("No trend data available")),
+      );
+    }
+
+    double maxVal = 0;
+    for (final item in data) {
+      if (item.standardCapacity > maxVal) maxVal = item.standardCapacity;
+      if (item.actualPrepared > maxVal) maxVal = item.actualPrepared;
+    }
+    if (maxVal == 0) maxVal = 100;
+    final double maxY = ((maxVal / 20).ceil() * 20).toDouble();
+    final double step = maxY / 3;
+
     return SizedBox(
       height: 200,
       child: Row(
@@ -407,9 +425,9 @@ class _CustomBarChart extends StatelessWidget {
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildYLabel("60"),
-              _buildYLabel("40"),
-              _buildYLabel("20"),
+              _buildYLabel(maxY.toInt().toString()),
+              _buildYLabel((step * 2).toInt().toString()),
+              _buildYLabel((step).toInt().toString()),
               _buildYLabel("0"),
               const SizedBox(height: 20), // Spacer for X-axis labels
             ],
@@ -449,7 +467,11 @@ class _CustomBarChart extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           d.label,
-                          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
                       ],
                     );
@@ -481,20 +503,24 @@ class _CustomBarChart extends StatelessWidget {
   }
 
   Widget _buildBar(double value, double maxY, Color color) {
-    final heightRatio = value / maxY;
-    // max height for bars is roughly 150 (200 total - 20 for labels - padding)
-    final barHeight = 150 * heightRatio;
-    
+    final heightRatio = (value / maxY).clamp(0.0, 1.0);
+    final barHeight = 135 * heightRatio;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Text(
           value.toInt().toString(),
-          style: TextStyle(fontSize: 9, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 9,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 4),
-        Container(
-          width: 16,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: 14,
           height: barHeight,
           decoration: BoxDecoration(
             color: color,
@@ -505,5 +531,3 @@ class _CustomBarChart extends StatelessWidget {
     );
   }
 }
-
-

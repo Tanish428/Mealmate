@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
-import 'menu_view_screen.dart';
-import 'attendance_toggle_screen.dart';
-import 'profile_screen.dart';
+import 'package:go_router/go_router.dart';
 import 'feedback_screen.dart';
 import 'notice_board_screen.dart';
+
 class MemberHomeScreen extends StatefulWidget {
-  const MemberHomeScreen({super.key});
+  final VoidCallback? onNavigateToMenu;
+  final VoidCallback? onNavigateToAttendance;
+  final VoidCallback? onNavigateToProfile;
+
+  const MemberHomeScreen({
+    super.key,
+    this.onNavigateToMenu,
+    this.onNavigateToAttendance,
+    this.onNavigateToProfile,
+  });
 
   @override
   State<MemberHomeScreen> createState() => _MemberHomeScreenState();
 }
 
 class _MemberHomeScreenState extends State<MemberHomeScreen> {
-  int _currentIndex = 0;
   String _selectedMeal = 'Lunch';
 
   final Map<String, dynamic> _mealData = {
@@ -83,18 +90,37 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     );
   }
 
+  void _navigateToMenu() {
+    if (widget.onNavigateToMenu != null) {
+      widget.onNavigateToMenu!();
+    } else {
+      context.go('/member/menu');
+    }
+  }
+
+  void _navigateToAttendance() {
+    if (widget.onNavigateToAttendance != null) {
+      widget.onNavigateToAttendance!();
+    } else {
+      context.go('/member/attendance');
+    }
+  }
+
+  void _navigateToProfile() {
+    if (widget.onNavigateToProfile != null) {
+      widget.onNavigateToProfile!();
+    } else {
+      context.go('/member/profile');
+    }
+  }
+
   Widget _buildHeader(Color primaryRed, Color textDark, Color textGray) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            );
-          },
+          onTap: _navigateToProfile,
           child: const CircleAvatar(
             radius: 28,
             backgroundColor: Colors.grey,
@@ -129,34 +155,43 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                 ],
               ),
               const SizedBox(height: 4.0),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 4.0,
-                ),
-                decoration: BoxDecoration(
-                  color: primaryRed.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.storefront, size: 14, color: primaryRed),
-                    const SizedBox(width: 4.0),
-                    Flexible(
-                      child: Text(
-                        'Campus Central Mess',
-                        style: TextStyle(
-                          color: primaryRed,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const NoticeBoardScreen()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.storefront, size: 14, color: primaryRed),
+                      const SizedBox(width: 4.0),
+                      Flexible(
+                        child: Text(
+                          'Campus Central Mess',
+                          style: TextStyle(
+                            color: primaryRed,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(width: 4.0),
-                    Icon(Icons.chevron_right, size: 14, color: primaryRed),
-                  ],
+                      const SizedBox(width: 4.0),
+                      Icon(Icons.chevron_right, size: 14, color: primaryRed),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -292,7 +327,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: (data['items'] as List<String>)
-                      .map((item) => _buildVegItem(item, textDark))
+                      .map<Widget>((item) => _buildVegItem(item, textDark))
                       .toList(),
                 ),
               ),
@@ -307,43 +342,49 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             ],
           ),
           const SizedBox(height: 16.0),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 12.0,
-            ),
-            decoration: BoxDecoration(
-              color: green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(2.0),
-                  decoration: BoxDecoration(
-                    color: green,
-                    shape: BoxShape.circle,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _navigateToAttendance,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
+              decoration: BoxDecoration(
+                color: green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2.0),
+                    decoration: BoxDecoration(
+                      color: green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check, size: 16, color: Colors.white),
                   ),
-                  child: const Icon(Icons.check, size: 16, color: Colors.white),
-                ),
-                const SizedBox(width: 12.0),
-                Text(
-                  'You are marked as ',
-                  style: TextStyle(
-                    color: textDark,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(width: 12.0),
+                  Text(
+                    'You are marked as ',
+                    style: TextStyle(
+                      color: textDark,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                Text(
-                  'Attending',
-                  style: TextStyle(
-                    color: green,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                  Text(
+                    'Attending',
+                    style: TextStyle(
+                      color: green,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                  const Spacer(),
+                  Icon(Icons.chevron_right, size: 18, color: green),
+                ],
+              ),
             ),
           ),
         ],
@@ -400,14 +441,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
               ),
             ),
             GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MenuViewScreen(),
-                  ),
-                );
-              },
+              onTap: _navigateToMenu,
               child: Row(
                 children: [
                   Text(
@@ -587,14 +621,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                 Icons.menu_book_outlined,
                 'View Menu',
                 primaryRed,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MenuViewScreen(),
-                    ),
-                  );
-                },
+                onTap: _navigateToMenu,
               ),
             ),
             const SizedBox(width: 8.0),
@@ -603,14 +630,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                 Icons.event_available_outlined,
                 'My Attendance',
                 primaryRed,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AttendanceToggleScreen(),
-                    ),
-                  );
-                },
+                onTap: _navigateToAttendance,
               ),
             ),
             const SizedBox(width: 8.0),
@@ -683,162 +703,4 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
       ),
     );
   }
-
-  Widget _buildBottomNav(Color primaryRed, Color textGray, int currentIndex) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.0),
-          topRight: Radius.circular(30.0),
-        ),
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) =>
-                          const MemberHomeScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(
-                  Icons.home,
-                  'Home',
-                  currentIndex == 0 ? primaryRed : textGray,
-                  currentIndex == 0,
-                ),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) =>
-                          const MenuViewScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(
-                  Icons.restaurant,
-                  'Menu',
-                  currentIndex == 1 ? primaryRed : textGray,
-                  currentIndex == 1,
-                ),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) =>
-                          const AttendanceToggleScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(
-                  Icons.calendar_today,
-                  'Attendance',
-                  currentIndex == 2 ? primaryRed : textGray,
-                  currentIndex == 2,
-                ),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation1, animation2) =>
-                          const ProfileScreen(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                child: _buildNavItem(
-                  Icons.person_outline,
-                  'Profile',
-                  currentIndex == 3 ? primaryRed : textGray,
-                  currentIndex == 3,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    Color color,
-    bool isSelected,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color),
-          if (isSelected) const SizedBox(height: 4.0),
-          if (isSelected)
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          if (!isSelected) const SizedBox(height: 4.0),
-          if (!isSelected)
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          if (isSelected) const SizedBox(height: 4.0),
-          if (isSelected)
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-        ],
-      ),
-    );
-  }
 }
-
-

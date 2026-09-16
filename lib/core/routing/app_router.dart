@@ -27,6 +27,8 @@ import '../../ui/member/attendance_toggle_screen.dart';
 import '../../ui/member/profile_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> ownerDashboardNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> memberHomeNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -62,10 +64,14 @@ final GoRouter appRouter = GoRouter(
       branches: [
         // Branch 0: Dashboard
         StatefulShellBranch(
+          navigatorKey: ownerDashboardNavigatorKey,
           routes: [
             GoRoute(
               path: '/owner/dashboard',
-              builder: (context, state) => const OwnerDashboardScreen(),
+              builder: (context, state) => OwnerDashboardScreen(
+                onNavigateToMenu: () => context.go('/owner/menu'),
+                onNavigateToMembers: () => context.go('/owner/members'),
+              ),
             ),
           ],
         ),
@@ -107,10 +113,15 @@ final GoRouter appRouter = GoRouter(
       branches: [
         // Branch 0: Home
         StatefulShellBranch(
+          navigatorKey: memberHomeNavigatorKey,
           routes: [
             GoRoute(
               path: '/member/home',
-              builder: (context, state) => const MemberHomeScreen(),
+              builder: (context, state) => MemberHomeScreen(
+                onNavigateToMenu: () => context.go('/member/menu'),
+                onNavigateToAttendance: () => context.go('/member/attendance'),
+                onNavigateToProfile: () => context.go('/member/profile'),
+              ),
             ),
           ],
         ),

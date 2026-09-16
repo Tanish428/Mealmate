@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/routing/app_router.dart';
 
 class MemberMainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -10,6 +11,13 @@ class MemberMainShell extends StatelessWidget {
   });
 
   void _onTap(int index) {
+    if (index == 0) {
+      if (memberHomeNavigatorKey.currentState?.canPop() == true) {
+        memberHomeNavigatorKey.currentState!.popUntil((route) => route.isFirst);
+      }
+      navigationShell.goBranch(0, initialLocation: true);
+      return;
+    }
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,
