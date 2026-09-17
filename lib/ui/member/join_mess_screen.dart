@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
+import '../common/qr_scanner_overlay.dart';
 
 
 // Local constants for spacing as per the design constraints
@@ -297,7 +298,29 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
               text: 'Scan QR Code',
               isPrimary: false,
               icon: Icons.qr_code,
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => QRScannerOverlay(
+                      onDetect: (barcode) {
+                        Navigator.of(context).pop(); // Close scanner
+                        
+                        // Populate the text field
+                        setState(() {
+                          _inviteCodeController.text = barcode;
+                        });
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Invite code $barcode captured!')),
+                        );
+                        
+                        // Automatically trigger the join action
+                        context.go('/member/home');
+                      },
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 
@@ -12,6 +14,7 @@ class MessProfileScreen extends StatefulWidget {
 
 class _MessProfileScreenState extends State<MessProfileScreen> {
   late TextEditingController _nameController;
+  final String inviteCode = "84X29P";
 
   @override
   void initState() {
@@ -230,36 +233,44 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
             ),
           ),
           const SizedBox(height: 24.0),
-          // QR Code Placeholder
-          Container(
-            width: 150.0,
-            height: 150.0,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade300, width: 2.0),
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: Icon(
-              Icons.qr_code_2,
-              size: 100.0,
-              color: Colors.grey.shade800,
-            ),
+          // QR Code
+          QrImageView(
+            data: inviteCode,
+            version: QrVersions.auto,
+            size: 200.0,
+            backgroundColor: Colors.white,
           ),
           const SizedBox(height: 24.0),
           // Invite Code Pill
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
             decoration: BoxDecoration(
               color: colorScheme.primary.withAlpha(20),
               borderRadius: BorderRadius.circular(30.0),
             ),
-            child: Text(
-              "84X29P",
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.primary,
-                letterSpacing: 2.0,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  inviteCode,
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                IconButton(
+                  icon: const Icon(Icons.copy),
+                  color: colorScheme.primary,
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: inviteCode));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invite code copied!')),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16.0),
@@ -284,7 +295,3 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     );
   }
 }
-
-
-
-
