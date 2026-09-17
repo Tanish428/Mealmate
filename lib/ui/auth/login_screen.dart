@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
-import 'role_selection_screen.dart';
+import '../common/custom_textfield.dart';
+import '../common/custom_button.dart';
+
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,7 +34,6 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            // Mapping padding to a standard AppSpacing constant. (Assuming 24.0 maps to AppSpacing.l)
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
             color: colorScheme.surface,
             boxShadow: [
               BoxShadow(
-                color: colorScheme.primary.withAlpha(38), // 0.15 * 255
+                color: colorScheme.primary.withAlpha(38),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -74,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: Center(
             child: Icon(
-              Icons.restaurant, // Placeholder for the actual logo
+              Icons.restaurant,
               size: 40,
               color: colorScheme.primary,
             ),
@@ -108,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(10), // 0.04 * 255
+            color: Colors.black.withAlpha(10),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -133,10 +134,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           const SizedBox(height: 8.0),
-          // Using CustomTextField as dictated by the specs
           CustomTextField(
             controller: _emailController,
-            prefixIcon: const Icon(Icons.mail_outline),
+            prefixIcon: Icons.mail_outline,
             hintText: "Enter your email",
           ),
           const SizedBox(height: 16.0),
@@ -145,10 +145,9 @@ class _LoginScreenState extends State<LoginScreen> {
             style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8.0),
-          // Using CustomTextField as dictated by the specs
           CustomTextField(
             controller: _passwordController,
-            prefixIcon: const Icon(Icons.lock_outline),
+            prefixIcon: Icons.lock_outline,
             obscureText: !_isPasswordVisible,
             suffixIcon: IconButton(
               icon: Icon(
@@ -170,23 +169,18 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Text(
                 "Forgot Password?",
                 style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary, // Primary rust/deep red
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
           const SizedBox(height: 24.0),
-          // Using CustomButton as dictated by the specs
           CustomButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
-              );
+              context.go('/role');
             },
             text: "Login",
-            // The solid rust/deep red and shadow are likely defaults or handled inside CustomButton.
           ),
         ],
       ),
@@ -224,20 +218,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildGoogleButton(ColorScheme colorScheme) {
-    // Using CustomButton with outline/pill styling as specified
     return CustomButton(
       onPressed: () {},
       text: "Continue with Google",
-      isOutlined: true,
-      // Assuming CustomButton accepts a prefix widget/icon
-      prefixIcon: Padding(
-        padding: const EdgeInsets.only(right: 8.0),
-        child: Image.asset(
-          'assets/images/Google_logo.png',
-          width: 24,
-          height: 24,
-        ),
-      ),
+      isPrimary: false,
     );
   }
 
@@ -245,10 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Center(
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SignupScreen()),
-          );
+          context.go('/signup');
         },
         child: RichText(
           text: TextSpan(
@@ -260,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextSpan(
                 text: "Sign Up",
                 style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary, // Primary rust/red
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.bold,
                   decoration: TextDecoration.underline,
                 ),
@@ -273,89 +254,3 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// =====================================================================
-// STUB IMPLEMENTATIONS FOR REQUIRED WIDGETS
-// Provided here to prevent analyze errors since they don't exist yet in the repo.
-// =====================================================================
-
-class CustomTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final Widget prefixIcon;
-  final Widget? suffixIcon;
-  final String hintText;
-  final bool obscureText;
-
-  const CustomTextField({
-    super.key,
-    required this.controller,
-    required this.prefixIcon,
-    this.suffixIcon,
-    required this.hintText,
-    this.obscureText = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon,
-        hintText: hintText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    );
-  }
-}
-
-class CustomButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final String text;
-  final bool isOutlined;
-  final Widget? prefixIcon;
-
-  const CustomButton({
-    super.key,
-    required this.onPressed,
-    required this.text,
-    this.isOutlined = false,
-    this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isOutlined) {
-      return OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0), // Pill-shaped
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ?prefixIcon,
-            Text(text),
-          ],
-        ),
-      );
-    }
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-      child: Text(text),
-    );
-  }
-}

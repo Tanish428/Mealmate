@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/stat_card.dart';
 
 class FeedbackItem {
   final String id;
@@ -77,7 +78,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(colorScheme, textTheme),
+              _buildHeader(context, colorScheme, textTheme),
               const SizedBox(height: 32.0),
               _buildSummaryMetric(colorScheme, textTheme),
               const SizedBox(height: 32.0),
@@ -99,7 +100,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
     return Row(
       children: [
         Container(
@@ -109,9 +110,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
           ),
           child: IconButton(
             icon: Icon(Icons.arrow_back, color: colorScheme.primary),
-            onPressed: () {
-              // Empty callback per architectural rules
-            },
+            onPressed: () { if (Navigator.of(context).canPop()) Navigator.pop(context); },
           ),
         ),
         const SizedBox(width: 16.0),
@@ -141,72 +140,13 @@ class OwnerFeedbackScreen extends StatelessWidget {
   }
 
   Widget _buildSummaryMetric(ColorScheme colorScheme, TextTheme textTheme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8), // Very soft shadow
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "4.3",
-                    style: textTheme.displayMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(width: 8.0),
-                  const Icon(Icons.star, color: Colors.amber, size: 40.0),
-                ],
-              ),
-            ),
-            VerticalDivider(
-              color: Colors.grey.shade300,
-              thickness: 1,
-              width: 32.0,
-            ),
-            Expanded(
-              flex: 3,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Average Rating",
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 4.0),
-                  Text(
-                    "Based on 124 reviews",
-                    style: textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return StatCard(
+      metric: "4.3",
+      title: "Average Rating",
+      subtitle: "Based on 124 reviews",
+      icon: Icons.star,
+      iconColor: Colors.amber,
+      iconBackgroundColor: Colors.amber.withAlpha(50),
     );
   }
 
@@ -335,3 +275,7 @@ class OwnerFeedbackScreen extends StatelessWidget {
     );
   }
 }
+
+
+
+

@@ -3,8 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AttendanceRepo {
   final FirebaseFirestore _firestore;
 
-  AttendanceRepo({required FirebaseFirestore firestore})
-      : _firestore = firestore;
+  AttendanceRepo({required this._firestore});
 
   /// Upserts a user's opt-in/opt-out status for a specific mess and date.
   /// Uses a composite document ID of `messId_userId_date` to ensure

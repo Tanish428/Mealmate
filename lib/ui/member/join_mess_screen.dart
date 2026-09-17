@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'member_home_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../common/custom_textfield.dart';
+import '../common/custom_button.dart';
+
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {
@@ -9,8 +12,21 @@ class AppSpacing {
   static const double xl = 32.0;
 }
 
-class JoinMessScreen extends StatelessWidget {
+class JoinMessScreen extends StatefulWidget {
   const JoinMessScreen({super.key});
+
+  @override
+  State<JoinMessScreen> createState() => _JoinMessScreenState();
+}
+
+class _JoinMessScreenState extends State<JoinMessScreen> {
+  final TextEditingController _inviteCodeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _inviteCodeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +42,11 @@ class JoinMessScreen extends StatelessWidget {
       body: Stack(
         children: [
           // Bottom Background Decoration (Wavy Graphic)
-          Positioned(
+          const Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: const SizedBox.shrink(),
+            child: SizedBox.shrink(),
           ),
           
           SafeArea(
@@ -185,21 +201,20 @@ class JoinMessScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.l),
-          const CustomTextField(
-            placeholder: 'Enter 6-digit invite code',
+          CustomTextField(
+            controller: _inviteCodeController,
+            hintText: 'Enter 6-digit invite code',
             prefixIcon: Icons.search,
           ),
           const SizedBox(height: AppSpacing.l),
-          CustomButton(
-            text: 'Join Mess',
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MemberHomeScreen(),
-                ),
-              );
-            },
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: 'Join Mess',
+              onPressed: () {
+                context.go('/member/home');
+              },
+            ),
           ),
         ],
       ),
@@ -276,11 +291,14 @@ class JoinMessScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.l),
-          CustomButton(
-            text: 'Scan QR Code',
-            isOutlined: true,
-            prefixIcon: Icons.qr_code,
-            onPressed: () {},
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: 'Scan QR Code',
+              isPrimary: false,
+              icon: Icons.qr_code,
+              onPressed: () {},
+            ),
           ),
         ],
       ),
@@ -318,118 +336,4 @@ class JoinMessScreen extends StatelessWidget {
     );
   }
 }
-
-// Local duplicate implementations as required by the existing codebase constraints
-class CustomTextField extends StatelessWidget {
-  final String placeholder;
-  final IconData prefixIcon;
-
-  const CustomTextField({
-    super.key,
-    required this.placeholder,
-    required this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return TextField(
-      decoration: InputDecoration(
-        hintText: placeholder,
-        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-        prefixIcon: Icon(prefixIcon, size: 22, color: colorScheme.onSurfaceVariant),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      ),
-    );
-  }
-}
-
-class CustomButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-  final bool isOutlined;
-  final IconData? prefixIcon;
-
-  const CustomButton({
-    super.key,
-    required this.text,
-    required this.onPressed,
-    this.isOutlined = false,
-    this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
-    if (isOutlined) {
-      return SizedBox(
-        width: double.infinity,
-        child: OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: colorScheme.primary,
-            side: BorderSide(color: colorScheme.primary, width: 1.5),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          onPressed: onPressed,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (prefixIcon != null) ...[
-                Icon(prefixIcon, size: 20),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                text,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary, 
-          foregroundColor: colorScheme.onPrimary,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          elevation: 0,
-        ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (prefixIcon != null) ...[
-              Icon(prefixIcon, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              text,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 

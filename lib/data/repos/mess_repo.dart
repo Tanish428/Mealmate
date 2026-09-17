@@ -5,7 +5,7 @@ import 'dart:math';
 class MessRepo {
   final FirebaseFirestore _firestore;
 
-  MessRepo({required FirebaseFirestore firestore}) : _firestore = firestore;
+  MessRepo({required this._firestore});
 
   String _generateInviteCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

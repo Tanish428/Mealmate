@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../common/custom_textfield.dart';
+import '../common/custom_button.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -77,9 +79,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           ),
           child: IconButton(
             icon: Icon(Icons.arrow_back, color: colorScheme.primary),
-            onPressed: () {
-              // Empty callback per architectural rules
-            },
+            onPressed: () { if (Navigator.of(context).canPop()) Navigator.pop(context); },
           ),
         ),
         const SizedBox(width: 16.0),
@@ -285,18 +285,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             style: textTheme.bodySmall?.copyWith(color: Colors.grey.shade500),
           ),
           const SizedBox(height: 16.0),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: CustomTextField(
-              controller: _commentController,
-              hintText: "Tell us what you liked or what could be improved...",
-              maxLines: 4,
-              minLines: 4,
-              hasBorder: false,
-            ),
+          CustomTextField(
+            controller: _commentController,
+            hintText: "Tell us what you liked or what could be improved...",
+            maxLines: 4,
           ),
           const SizedBox(height: 8.0),
           Align(
@@ -327,138 +319,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       child: CustomButton(
         onPressed: () {},
         text: "Submit Feedback",
-        icon: Icons.send, // approximate for paper airplane
+        icon: Icons.send,
       ),
     );
   }
 }
 
-// =====================================================================
-// STUB IMPLEMENTATIONS FOR REQUIRED WIDGETS
-// Provided here to prevent analyze errors since they don't exist yet in the repo.
-// =====================================================================
 
-class CustomTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final Widget? prefixIcon;
-  final Widget? suffixIcon;
-  final String hintText;
-  final bool obscureText;
-  final int maxLines;
-  final int minLines;
-  final bool hasBorder;
 
-  const CustomTextField({
-    super.key,
-    required this.controller,
-    this.prefixIcon,
-    this.suffixIcon,
-    required this.hintText,
-    this.obscureText = false,
-    this.maxLines = 1,
-    this.minLines = 1,
-    this.hasBorder = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      maxLines: maxLines,
-      minLines: minLines,
-      decoration: InputDecoration(
-        prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon,
-        hintText: hintText,
-        hintStyle: TextStyle(color: Colors.grey.shade400),
-        filled: !hasBorder,
-        fillColor: hasBorder ? null : Colors.transparent,
-        border: hasBorder
-            ? OutlineInputBorder(borderRadius: BorderRadius.circular(8.0))
-            : InputBorder.none,
-        enabledBorder: hasBorder
-            ? OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              )
-            : InputBorder.none,
-        focusedBorder: hasBorder
-            ? OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
-              )
-            : InputBorder.none,
-        contentPadding: const EdgeInsets.all(16.0),
-      ),
-    );
-  }
-}
-
-class CustomButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final String text;
-  final bool isOutlined;
-  final IconData? icon;
-
-  const CustomButton({
-    super.key,
-    required this.onPressed,
-    required this.text,
-    this.isOutlined = false,
-    this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
-    if (isOutlined) {
-      return OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon),
-              const SizedBox(width: 8.0),
-            ],
-            Text(text),
-          ],
-        ),
-      );
-    }
-    
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-        elevation: 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 8.0),
-          ],
-          Text(
-            text,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
-}

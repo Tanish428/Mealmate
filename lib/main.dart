@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'ui/auth/login_screen.dart';
+import 'core/routing/app_router.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -10,16 +11,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'MealMate',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFFA500), // Hex #FFA500 Orange
-          surface: const Color(0xFFFBF8F1), // Off-white/warm cream
+          seedColor: const Color(0xFFC0392B), 
+          surface: const Color(0xFFFBF8F1), 
         ),
       ),
-      home: const LoginScreen(),
+      routerConfig: appRouter,
     );
   }
 }

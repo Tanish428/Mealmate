@@ -3,8 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 class NotificationService {
   final FirebaseMessaging _firebaseMessaging;
 
-  NotificationService({required FirebaseMessaging firebaseMessaging})
-      : _firebaseMessaging = firebaseMessaging;
+  NotificationService({required this._firebaseMessaging});
 
   Future<bool> requestPermissions() async {
     try {

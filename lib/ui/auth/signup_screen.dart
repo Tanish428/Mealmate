@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'role_selection_screen.dart';
+import '../common/custom_textfield.dart';
+import '../common/custom_button.dart';
+import 'package:go_router/go_router.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -75,7 +77,7 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           child: Center(
             child: Icon(
-              Icons.restaurant, // Placeholder for Logo
+              Icons.restaurant,
               size: 40,
               color: colorScheme.primary,
             ),
@@ -122,7 +124,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const SizedBox(height: 8.0),
           CustomTextField(
             controller: _nameController,
-            prefixIcon: const Icon(Icons.person_outline),
+            prefixIcon: Icons.person_outline,
             hintText: "Enter your name",
           ),
           const SizedBox(height: 16.0),
@@ -131,7 +133,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const SizedBox(height: 8.0),
           CustomTextField(
             controller: _emailController,
-            prefixIcon: const Icon(Icons.mail_outline),
+            prefixIcon: Icons.mail_outline,
             hintText: "Enter your email",
           ),
           const SizedBox(height: 16.0),
@@ -140,7 +142,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const SizedBox(height: 8.0),
           CustomTextField(
             controller: _passwordController,
-            prefixIcon: const Icon(Icons.lock_outline),
+            prefixIcon: Icons.lock_outline,
             obscureText: !_isPasswordVisible,
             suffixIcon: IconButton(
               icon: Icon(
@@ -163,7 +165,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const SizedBox(height: 8.0),
           CustomTextField(
             controller: _confirmPasswordController,
-            prefixIcon: const Icon(Icons.lock_outline),
+            prefixIcon: Icons.lock_outline,
             obscureText: !_isConfirmPasswordVisible,
             suffixIcon: IconButton(
               icon: Icon(
@@ -201,10 +203,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const SizedBox(height: 24.0),
           CustomButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
-              );
+              context.go('/role');
             },
             text: "Create Account",
           ),
@@ -261,15 +260,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return CustomButton(
       onPressed: () {},
       text: "Continue with Google",
-      isOutlined: true,
-      prefixIcon: Padding(
-        padding: const EdgeInsets.only(right: 8.0),
-        child: Image.asset(
-          'assets/images/Google_logo.png',
-          width: 24,
-          height: 24,
-        ),
-      ),
+      isPrimary: false,
     );
   }
 
@@ -302,88 +293,3 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 }
 
-// =====================================================================
-// STUB IMPLEMENTATIONS FOR REQUIRED WIDGETS
-// =====================================================================
-
-class CustomTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final Widget prefixIcon;
-  final Widget? suffixIcon;
-  final String hintText;
-  final bool obscureText;
-
-  const CustomTextField({
-    super.key,
-    required this.controller,
-    required this.prefixIcon,
-    this.suffixIcon,
-    required this.hintText,
-    this.obscureText = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon,
-        hintText: hintText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-    );
-  }
-}
-
-class CustomButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final String text;
-  final bool isOutlined;
-  final Widget? prefixIcon;
-
-  const CustomButton({
-    super.key,
-    required this.onPressed,
-    required this.text,
-    this.isOutlined = false,
-    this.prefixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isOutlined) {
-      return OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ?prefixIcon,
-            Text(text),
-          ],
-        ),
-      );
-    }
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-      ),
-      child: Text(text),
-    );
-  }
-}
