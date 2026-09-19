@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/repos/feedback_repo.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 
@@ -13,7 +14,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   String _selectedMeal = 'Lunch';
   int _rating = 0;
   int _commentLength = 0;
+  bool _isLoading = false;
   final TextEditingController _commentController = TextEditingController();
+  final FeedbackRepository _feedbackRepo = FeedbackRepository();
 
   final List<String> _meals = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -31,6 +34,73 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSubmitFeedback() async {
+    if (_rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a rating for your meal.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    final message = _commentController.text.trim();
+    if (message.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your feedback comment before submitting.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _feedbackRepo.submitFeedback(
+        message: message,
+        rating: _rating,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Feedback submitted successfully! Thank you.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      _commentController.clear();
+      setState(() {
+        _rating = 0;
+        _commentLength = 0;
+      });
+
+      if (Navigator.of(context).canPop()) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -142,7 +212,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                         child: Icon(
-                          Icons.restaurant, // fork/knife approximation
+                          Icons.restaurant,
                           color: Colors.grey.shade800,
                           size: 20,
                         ),
@@ -197,7 +267,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(8), // Very soft shadow
+            color: Colors.black.withAlpha(8),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -263,7 +333,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(8), // Very soft shadow
+            color: Colors.black.withAlpha(8),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -317,13 +387,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ],
       ),
       child: CustomButton(
-        onPressed: () {},
+        onPressed: _handleSubmitFeedback,
         text: "Submit Feedback",
         icon: Icons.send,
+        isLoading: _isLoading,
       ),
     );
   }
 }
-
-
-
