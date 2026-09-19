@@ -1,100 +1,126 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/mess_model.dart';
 import 'dart:math';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class MessRepo {
-  final FirebaseFirestore _firestore;
+class MessRepository {
+  final SupabaseClient _client;
 
-  MessRepo({required this._firestore});
+  MessRepository({SupabaseClient? client})
+      : _client = client ?? Supabase.instance.client;
 
+  /// Helper to generate a 6-character uppercase alphanumeric string
   String _generateInviteCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final random = Random.secure();
-    return List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(
+        6,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
+    );
   }
 
-  Future<MessModel> createMess(MessModel mess) async {
+  /// Creates a new mess, retrieves its generated ID, links it to the owner, 
+  /// and returns the invite code.
+  Future<String> createMess({required String messName}) async {
     try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User is not authenticated.');
+      }
+
       final inviteCode = _generateInviteCode();
-      final docRef = _firestore.collection('messes').doc();
 
-      final newMess = MessModel(
-        messId: docRef.id,
-        name: mess.name,
-        createdBy: mess.createdBy,
-        inviteCode: inviteCode,
-        billingEnabled: mess.billingEnabled,
-        perDayRate: mess.perDayRate,
-      );
+      // Insert mess and select the newly generated UUID
+      final response = await _client.from('messes').insert({
+        'owner_id': userId,
+        'mess_name': messName,
+        'invite_code': inviteCode,
+      }).select('id').single();
 
-      await docRef.set(newMess.toMap());
+      final newlyCreatedMessId = response['id'];
 
-      return newMess;
-    } on FirebaseException catch (e) {
-      throw 'Database error: ${e.message}';
+      // Update the profiles table to link this user to the new mess
+      await _client
+          .from('profiles')
+          .update({'mess_id': newlyCreatedMessId})
+          .eq('id', userId);
+
+      return inviteCode;
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
     } catch (e) {
-      throw 'An unexpected error occurred';
+      throw Exception('An unexpected error occurred while creating the mess.');
     }
   }
 
-  Future<MessModel?> getMessById(String messId) async {
+  /// Joins an existing mess using an invite code.
+  Future<void> joinMess({required String inviteCode}) async {
     try {
-      final doc = await _firestore.collection('messes').doc(messId).get();
-
-      if (!doc.exists) {
-        return null;
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User is not authenticated.');
       }
 
-      return MessModel.fromMap(doc.data()!);
-    } on FirebaseException catch (e) {
-      throw 'Database error: ${e.message}';
-    } catch (e) {
-      throw 'An unexpected error occurred';
-    }
-  }
+      // Query the messes table to find the matching mess ID
+      final result = await _client
+          .from('messes')
+          .select('id')
+          .eq('invite_code', inviteCode.toUpperCase())
+          .maybeSingle();
 
-  Future<MessModel?> getMessByInviteCode(String inviteCode) async {
-    try {
-      final query = await _firestore
-          .collection('messes')
-          .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
-          .limit(1)
-          .get();
-
-      if (query.docs.isEmpty) {
-        return null;
+      if (result == null) {
+        throw Exception('Invalid invite code. Please check and try again.');
       }
 
-      return MessModel.fromMap(query.docs.first.data());
-    } on FirebaseException catch (e) {
-      throw 'Database error: ${e.message}';
+      final matchedMessId = result['id'];
+
+      // Update the profiles table to link this user to the mess
+      await _client
+          .from('profiles')
+          .update({'mess_id': matchedMessId})
+          .eq('id', userId);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
     } catch (e) {
-      throw 'An unexpected error occurred';
+      throw Exception('An unexpected error occurred while joining the mess.');
     }
   }
 
-  Future<void> joinMess({required String userId, required String messId}) async {
+  /// Gets the owner's mess name
+  Future<String?> getOwnerMessName() async {
     try {
-      final userRef = _firestore.collection('users').doc(userId);
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) return null;
 
-      await _firestore.runTransaction((transaction) async {
-        final userDoc = await transaction.get(userRef);
+      final result = await _client
+          .from('messes')
+          .select('mess_name')
+          .eq('owner_id', userId)
+          .maybeSingle();
 
-        if (!userDoc.exists) {
-          throw 'User not found';
-        }
-
-        final currentMessIds = List<String>.from(userDoc.data()?['messIds'] ?? []);
-
-        if (!currentMessIds.contains(messId)) {
-          currentMessIds.add(messId);
-          transaction.update(userRef, {'messIds': currentMessIds});
-        }
-      });
-    } on FirebaseException catch (e) {
-      throw 'Database error: ${e.message}';
+      if (result != null) {
+        return result['mess_name'] as String?;
+      }
+      return null;
     } catch (e) {
-      throw 'An unexpected error occurred';
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getOwnerMessDetails() async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final result = await _client
+          .from('messes')
+          .select('mess_name, invite_code')
+          .eq('owner_id', userId)
+          .maybeSingle();
+
+      return result;
+    } catch (e) {
+      return null;
     }
   }
 }

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
+import '../../data/services/supabase_auth_service.dart';
+import '../../data/repos/mess_repo.dart';
 
 class MessProfileScreen extends StatefulWidget {
   const MessProfileScreen({super.key});
@@ -14,12 +16,31 @@ class MessProfileScreen extends StatefulWidget {
 
 class _MessProfileScreenState extends State<MessProfileScreen> {
   late TextEditingController _nameController;
-  final String inviteCode = "84X29P";
+  String _inviteCode = '------';
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: "DDU Campus Mess");
+    _nameController = TextEditingController(text: "Loading...");
+    _loadMessData();
+  }
+
+  Future<void> _loadMessData() async {
+    final repo = MessRepository();
+    final data = await repo.getOwnerMessDetails();
+    if (mounted) {
+      setState(() {
+        if (data != null) {
+          _nameController.text = data['mess_name'] ?? 'Your Mess';
+          _inviteCode = data['invite_code'] ?? 'N/A';
+        } else {
+          _nameController.text = 'Your Mess';
+          _inviteCode = 'Error';
+        }
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -234,12 +255,18 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
           ),
           const SizedBox(height: 24.0),
           // QR Code
-          QrImageView(
-            data: inviteCode,
-            version: QrVersions.auto,
-            size: 200.0,
-            backgroundColor: Colors.white,
-          ),
+          if (_isLoading)
+            const SizedBox(
+              height: 200.0,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            QrImageView(
+              data: _inviteCode,
+              version: QrVersions.auto,
+              size: 200.0,
+              backgroundColor: Colors.white,
+            ),
           const SizedBox(height: 24.0),
           // Invite Code Pill
           Container(
@@ -252,7 +279,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  inviteCode,
+                  _inviteCode,
                   style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.primary,
@@ -264,7 +291,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
                   icon: const Icon(Icons.copy),
                   color: colorScheme.primary,
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: inviteCode));
+                    Clipboard.setData(ClipboardData(text: _inviteCode));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Invite code copied!')),
                     );
@@ -291,7 +318,12 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
       text: "Log Out",
       isPrimary: false,
       icon: Icons.logout,
-      onPressed: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
+      onPressed: () async { 
+        await SupabaseAuthService().signOut();
+        if (context.mounted) {
+          context.go('/login'); 
+        }
+      },
     );
   }
 }

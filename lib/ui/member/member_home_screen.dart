@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'feedback_screen.dart';
 import 'notice_board_screen.dart';
+import '../../data/repositories/profile_repo.dart';
 
 class MemberHomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToMenu;
@@ -21,6 +22,24 @@ class MemberHomeScreen extends StatefulWidget {
 
 class _MemberHomeScreenState extends State<MemberHomeScreen> {
   String _selectedMeal = 'Lunch';
+  String? _memberName;
+  bool _isLoadingName = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMemberName();
+  }
+
+  Future<void> _fetchMemberName() async {
+    final name = await ProfileRepository().getUserFullName();
+    if (mounted) {
+      setState(() {
+        _memberName = name;
+        _isLoadingName = false;
+      });
+    }
+  }
 
   final Map<String, dynamic> _mealData = {
     'Breakfast': {
@@ -86,7 +105,6 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           ),
         ),
       ),
-
     );
   }
 
@@ -142,16 +160,26 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
               ),
               Row(
                 children: [
-                  Text(
-                    'Alex',
-                    style: TextStyle(
-                      color: textDark,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                  if (_isLoadingName)
+                    const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Text(
+                      _memberName ?? 'User',
+                      style: TextStyle(
+                        color: textDark,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: 4.0),
-                  const Text('👋', style: TextStyle(fontSize: 20)),
+                  if (!_isLoadingName)
+                    const SizedBox(width: 4.0),
+                  if (!_isLoadingName)
+                    const Text('👋', style: TextStyle(fontSize: 20)),
                 ],
               ),
               const SizedBox(height: 4.0),

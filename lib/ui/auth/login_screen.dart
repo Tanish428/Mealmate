@@ -3,6 +3,8 @@ import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/services/supabase_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +16,60 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = SupabaseAuthService();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    setState(() { _isLoading = true; });
+
+    try {
+      final response = await _authService.signInWithEmailPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      
+      if (!mounted) return;
+
+      final userId = response.user?.id;
+      if (userId != null) {
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (!mounted) return;
+
+        if (profile != null && profile['role'] == 'owner') {
+          context.go('/owner/dashboard');
+        } else if (profile != null && profile['role'] == 'member') {
+          context.go('/member/home');
+        } else {
+          context.go('/role');
+        }
+      } else {
+        context.go('/role');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red.shade400,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() { _isLoading = false; });
+    }
+  }
 
   @override
   void dispose() {
@@ -177,10 +232,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 24.0),
           CustomButton(
-            onPressed: () {
-              context.go('/role');
-            },
-            text: "Login",
+            onPressed: _isLoading ? () {} : _handleLogin,
+            text: _isLoading ? "Logging in..." : "Login",
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/services/supabase_auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -15,9 +16,47 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _authService = SupabaseAuthService();
   
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _isLoading = false;
+
+  Future<void> _handleSignup() async {
+    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() { _isLoading = true; });
+
+    try {
+      await _authService.signUpWithEmailPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      if (!mounted) return;
+      context.go('/role');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red.shade400,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() { _isLoading = false; });
+    }
+  }
 
   @override
   void dispose() {
@@ -202,10 +241,8 @@ class _SignupScreenState extends State<SignupScreen> {
           
           const SizedBox(height: 24.0),
           CustomButton(
-            onPressed: () {
-              context.go('/role');
-            },
-            text: "Create Account",
+            onPressed: _isLoading ? () {} : _handleSignup,
+            text: _isLoading ? "Creating Account..." : "Create Account",
           ),
         ],
       ),

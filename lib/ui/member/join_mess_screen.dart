@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 import '../common/qr_scanner_overlay.dart';
-
+import '../../data/repos/mess_repo.dart';
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {
@@ -22,11 +22,47 @@ class JoinMessScreen extends StatefulWidget {
 
 class _JoinMessScreenState extends State<JoinMessScreen> {
   final TextEditingController _inviteCodeController = TextEditingController();
+  bool _isLoading = false;
+  final MessRepository _messRepo = MessRepository();
 
   @override
   void dispose() {
     _inviteCodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitJoinRequest([String? code]) async {
+    final inviteCode = code ?? _inviteCodeController.text.trim();
+    if (inviteCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter an invite code')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _messRepo.joinMess(inviteCode: inviteCode);
+      if (!mounted) return;
+      context.go('/member/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red.shade400,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -210,12 +246,28 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
           const SizedBox(height: AppSpacing.l),
           SizedBox(
             width: double.infinity,
-            child: CustomButton(
-              text: 'Join Mess',
-              onPressed: () {
-                context.go('/member/home');
-              },
-            ),
+            height: 56.0,
+            child: _isLoading 
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: primaryColor,
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      ),
+                    ),
+                  )
+                : CustomButton(
+                    text: 'Join Mess',
+                    onPressed: () => _submitJoinRequest(),
+                  ),
           ),
         ],
       ),
@@ -310,12 +362,8 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
                           _inviteCodeController.text = barcode;
                         });
                         
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Invite code $barcode captured!')),
-                        );
-                        
                         // Automatically trigger the join action
-                        context.go('/member/home');
+                        _submitJoinRequest(barcode);
                       },
                     ),
                   ),
@@ -359,4 +407,3 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
     );
   }
 }
-

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../common/custom_button.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../data/repositories/profile_repo.dart';
 
 enum Role { member, owner }
 
@@ -14,6 +14,46 @@ class RoleSelectionScreen extends StatefulWidget {
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   Role? _selectedRole;
+  bool _isLoading = false;
+  final ProfileRepository _profileRepo = ProfileRepository();
+
+  Future<void> _handleContinue() async {
+    if (_selectedRole == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final roleString = _selectedRole == Role.owner ? 'owner' : 'member';
+      
+      // Save the profile role to Supabase
+      await _profileRepo.createUserProfile(role: roleString);
+      
+      if (!mounted) return;
+      
+      // Navigate based on selected role
+      if (_selectedRole == Role.member) {
+        context.go('/join-mess');
+      } else if (_selectedRole == Role.owner) {
+        context.go('/create-mess');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red.shade400,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,16 +125,17 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                     const Spacer(),
                     
                     // Primary Action Area
-                    CustomButton(
-                      onPressed: _selectedRole != null ? () {
-                        if (_selectedRole == Role.member) {
-                          context.go('/join-mess');
-                        } else if (_selectedRole == Role.owner) {
-                          context.go('/create-mess');
-                        }
-                      } : null,
-                      text: "Continue",
-                    ),
+                    _isLoading
+                        ? const SizedBox(
+                            height: 56.0, // Matches standard button height to prevent layout jumps
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : CustomButton(
+                            onPressed: _selectedRole != null ? _handleContinue : null,
+                            text: "Continue",
+                          ),
                     const SizedBox(height: 24.0),
                   ],
                 ),
@@ -175,7 +216,3 @@ class _RoleCard extends StatelessWidget {
     );
   }
 }
-
-
-
-
