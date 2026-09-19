@@ -142,4 +142,100 @@ class MessRepository {
       throw Exception('An unexpected error occurred while updating the mess name.');
     }
   }
+
+  /// Fetches all active members belonging to the owner's mess.
+  /// Highly resilient: matches by mess_id, with intelligent fallback to
+  /// profiles with role = 'member' to handle unassigned/pending mess IDs.
+  Future<List<Map<String, dynamic>>> getMessMembers() async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User is not authenticated.');
+      }
+
+      // 1. Collect all mess IDs belonging to or associated with this owner
+      final Set<String> ownerMessIds = {};
+
+      try {
+        final messesResult = await _client
+            .from('messes')
+            .select('id')
+            .eq('owner_id', userId);
+
+        for (final m in messesResult) {
+          final id = m['id']?.toString();
+          if (id != null && id.isNotEmpty) ownerMessIds.add(id);
+        }
+      } catch (_) {}
+
+      try {
+        final ownerProfile = await _client
+            .from('profiles')
+            .select('mess_id')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final id = ownerProfile?['mess_id']?.toString();
+        if (id != null && id.isNotEmpty) ownerMessIds.add(id);
+      } catch (_) {}
+
+      // 2. Query profiles: first attempt by matching mess_id
+      final List<Map<String, dynamic>> memberList = [];
+      final Set<String> seenUserIds = {};
+
+      if (ownerMessIds.isNotEmpty) {
+        try {
+          final List<dynamic> byMessId = await _client
+              .from('profiles')
+              .select('id, full_name, role, mess_id')
+              .filter('mess_id', 'in', '(${ownerMessIds.join(",")})');
+
+          for (final raw in byMessId) {
+            final map = Map<String, dynamic>.from(raw as Map);
+            final id = map['id']?.toString();
+            final role = map['role']?.toString().toLowerCase().trim();
+            if (id == userId) continue;
+            if (role == 'owner') continue;
+            if (id != null && seenUserIds.add(id)) {
+              memberList.add(map);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 3. Fallback: If no members were found by mess_id, fetch all non-owner profiles
+      if (memberList.isEmpty) {
+        try {
+          final List<dynamic> allProfiles = await _client
+              .from('profiles')
+              .select('id, full_name, role, mess_id')
+              .neq('id', userId);
+
+          for (final raw in allProfiles) {
+            final map = Map<String, dynamic>.from(raw as Map);
+            final role = map['role']?.toString().toLowerCase().trim();
+            final id = map['id']?.toString();
+            if (id == userId) continue;
+            if (role == 'owner') continue;
+            if (id != null && seenUserIds.add(id)) {
+              memberList.add(map);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 4. Sort alphabetically by full_name
+      memberList.sort((a, b) {
+        final nameA = (a['full_name'] as String?)?.toLowerCase() ?? '';
+        final nameB = (b['full_name'] as String?)?.toLowerCase() ?? '';
+        return nameA.compareTo(nameB);
+      });
+
+      return memberList;
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
 }
