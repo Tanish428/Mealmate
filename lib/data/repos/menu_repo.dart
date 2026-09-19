@@ -1,47 +1,65 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/menu_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class MenuRepo {
-  final FirebaseFirestore _firestore;
+class MenuRepository {
+  final SupabaseClient _client = Supabase.instance.client;
 
-  MenuRepo({required this._firestore});
+  Future<void> addMenu({
+    required DateTime date,
+    required String mealType,
+    required List<String> items,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
 
-  Future<void> publishMenu(MenuModel menu) async {
-    try {
-      await _firestore.collection('menus').doc(menu.menuId).set(menu.toMap());
-    } on FirebaseException catch (e) {
-      throw 'Database error: ${e.message}';
-    } catch (e) {
-      throw 'An unexpected error occurred';
-    }
+    // Query profiles table to get the owner's mess_id
+    final profileResponse = await _client
+        .from('profiles')
+        .select('mess_id')
+        .eq('id', user.id)
+        .single();
+
+    final messId = profileResponse['mess_id'];
+    if (messId == null) throw Exception('No mess_id found for user');
+
+    final dateStr = date.toIso8601String().split("T")[0];
+
+    // Upsert the menu
+    await _client.from('menus').upsert(
+      {
+        'mess_id': messId,
+        'menu_date': dateStr,
+        'meal_type': mealType.toLowerCase(),
+        'items': items,
+      },
+      onConflict: 'mess_id, menu_date, meal_type',
+    );
   }
 
-  Future<MenuModel?> getMenuForDate({
-    required String messId,
-    required DateTime date,
-  }) async {
-    try {
-      // Use start and end of the specified day to avoid timezone matching errors
-      final startOfDay = DateTime(date.year, date.month, date.day);
-      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+  Future<List<Map<String, dynamic>>> getTodayMenu() async {
+    return getMenuForDate(DateTime.now());
+  }
 
-      final query = await _firestore
-          .collection('menus')
-          .where('messId', isEqualTo: messId)
-          .where('date', isGreaterThanOrEqualTo: startOfDay)
-          .where('date', isLessThanOrEqualTo: endOfDay)
-          .limit(1)
-          .get();
+  Future<List<Map<String, dynamic>>> getMenuForDate(DateTime date) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
 
-      if (query.docs.isEmpty) {
-        return null;
-      }
+    final profileResponse = await _client
+        .from('profiles')
+        .select('mess_id')
+        .eq('id', user.id)
+        .single();
 
-      return MenuModel.fromMap(query.docs.first.data());
-    } on FirebaseException catch (e) {
-      throw 'Database error: ${e.message}';
-    } catch (e) {
-      throw 'An unexpected error occurred';
-    }
+    final messId = profileResponse['mess_id'];
+    if (messId == null) throw Exception('No mess_id found for user');
+
+    final dateStr = date.toIso8601String().split("T")[0];
+
+    final response = await _client
+        .from('menus')
+        .select()
+        .eq('mess_id', messId)
+        .eq('menu_date', dateStr);
+
+    return List<Map<String, dynamic>>.from(response);
   }
 }
