@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../data/services/supabase_auth_service.dart';
 import 'edit_profile_screen.dart';
+
+import '../../data/repositories/profile_repo.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,6 +14,39 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
 
+  bool _isLoading = true;
+  String _fullName = 'Loading...';
+  String _email = 'Loading...';
+  String _role = 'Loading...';
+  String _messName = 'Loading...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final repo = ProfileRepository();
+    final data = await repo.getMemberProfileDetails();
+    if (mounted) {
+      setState(() {
+        if (data != null) {
+          _fullName = (data['full_name']?.toString().trim().isNotEmpty == true) 
+              ? data['full_name'] : 'User';
+          _email = data['email'] ?? 'No Email';
+          _role = data['role'] == 'owner' ? 'Mess Owner' : 'Mess Member';
+          _messName = data['mess_name'] ?? 'Not Assigned';
+        } else {
+          _fullName = 'User';
+          _email = 'Unknown';
+          _role = 'Unknown';
+          _messName = 'Unknown';
+        }
+        _isLoading = false;
+      });
+    }
+  }
 
   // Theme Colors based on previous screens
   final Color bgColor = const Color(0xFFFAF7F5);
@@ -147,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 16.0),
                 Text(
-                  'Alex Mehta',
+                  _isLoading ? 'Loading...' : _fullName,
                   style: TextStyle(
                     color: textDark,
                     fontSize: 22,
@@ -165,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(20.0),
                       ),
                       child: Text(
-                        'Mess Member',
+                        _role,
                         style: TextStyle(
                           color: green,
                           fontSize: 12,
@@ -182,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         border: Border.all(color: primaryRed.withValues(alpha: 0.3)),
                       ),
                       child: Text(
-                        'Campus Central Mess',
+                        _messName,
                         style: TextStyle(
                           color: primaryRed,
                           fontSize: 12,
@@ -216,13 +253,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          _buildInfoRow(Icons.person_outline, 'Full Name', 'Alex Mehta'),
+          _buildInfoRow(Icons.person_outline, 'Full Name', _fullName),
           const Divider(height: 24),
-          _buildInfoRow(Icons.email_outlined, 'Email Address', 'alex.mehta@university.edu'),
+          _buildInfoRow(Icons.email_outlined, 'Email Address', _email),
           const Divider(height: 24),
-          _buildInfoRow(Icons.badge_outlined, 'Role', 'Student'),
+          _buildInfoRow(Icons.badge_outlined, 'Role', _role),
           const Divider(height: 24),
-          _buildInfoRow(Icons.restaurant, 'Assigned Mess', 'Campus Central Mess'),
+          _buildInfoRow(Icons.restaurant, 'Assigned Mess', _messName),
         ],
       ),
     );
@@ -398,7 +435,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 12.0),
         CustomButton(
-          onPressed: () {},
+          onPressed: () async {
+            await SupabaseAuthService().signOut();
+            if (context.mounted) {
+              context.go('/login');
+            }
+          },
           text: 'Log Out',
           isOutlined: true,
           prefixIcon: Icon(Icons.logout, size: 18, color: primaryRed),

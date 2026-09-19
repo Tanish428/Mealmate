@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/repos/mess_repo.dart';
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {
@@ -23,10 +24,12 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
   bool _providesBreakfast = false;
   bool _providesLunch = true;
   bool _providesDinner = true;
+  bool _isLoading = false;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _capacityController = TextEditingController();
+  final MessRepository _messRepo = MessRepository();
 
   @override
   void dispose() {
@@ -34,6 +37,40 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
     _addressController.dispose();
     _capacityController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleCreateMess() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a mess name')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _messRepo.createMess(messName: name);
+      if (!mounted) return;
+      context.go('/owner/dashboard');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red.shade400,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -100,13 +137,28 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
                   // Action Area
                   SizedBox(
                     width: double.infinity,
-                    child: CustomButton(
-                      text: 'Create Mess',
-                      // trailingIcon logic isn't natively in CustomButton, but we can just use text
-                      onPressed: () {
-                        context.go('/owner/dashboard');
-                      },
-                    ),
+                    height: 56.0, // Fixed height to match typical CustomButton dimension
+                    child: _isLoading 
+                        ? Container(
+                            decoration: BoxDecoration(
+                              color: primaryColor,
+                              borderRadius: BorderRadius.circular(16.0), // Matching CustomButton style
+                            ),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+                            ),
+                          )
+                        : CustomButton(
+                            text: 'Create Mess',
+                            onPressed: _handleCreateMess,
+                          ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
                 ],
@@ -435,7 +487,3 @@ class _MealChip extends StatelessWidget {
     );
   }
 }
-
-
-
-

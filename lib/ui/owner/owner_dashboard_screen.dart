@@ -5,12 +5,37 @@ import 'surplus_allocation_screen.dart';
 import 'broadcast_screen.dart';
 import 'owner_feedback_screen.dart';
 import '../common/custom_button.dart';
+import '../../data/repos/mess_repo.dart';
 
-class OwnerDashboardScreen extends StatelessWidget {
+class OwnerDashboardScreen extends StatefulWidget {
   final VoidCallback? onNavigateToMenu;
   final VoidCallback? onNavigateToMembers;
   
   const OwnerDashboardScreen({super.key, this.onNavigateToMenu, this.onNavigateToMembers});
+
+  @override
+  State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
+}
+
+class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
+  String? _messName;
+  bool _isLoadingName = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMessName();
+  }
+
+  Future<void> _fetchMessName() async {
+    final name = await MessRepository().getOwnerMessName();
+    if (mounted) {
+      setState(() {
+        _messName = name;
+        _isLoadingName = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +47,7 @@ class OwnerDashboardScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _DashboardHeader(),
+              _DashboardHeader(messName: _messName, isLoading: _isLoadingName),
               const SizedBox(height: 24.0),
               const _NextMealCard(),
               const SizedBox(height: 32.0),
@@ -37,7 +62,10 @@ class OwnerDashboardScreen extends StatelessWidget {
 }
 
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader();
+  final String? messName;
+  final bool isLoading;
+
+  const _DashboardHeader({this.messName, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +79,19 @@ class _DashboardHeader extends StatelessWidget {
               ),
         ),
         const SizedBox(height: 4.0),
-        Text(
-          "DDU Campus Mess",
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade600,
-              ),
-        ),
+        if (isLoading)
+          const SizedBox(
+            height: 16,
+            width: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        else
+          Text(
+            messName ?? "Your Mess",
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+          ),
       ],
     );
   }
@@ -400,6 +435,3 @@ class _QuickActionItem extends StatelessWidget {
     );
   }
 }
-
-
-

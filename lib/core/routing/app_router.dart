@@ -149,6 +149,7 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/member/profile',
               builder: (context, state) => const ProfileScreen(),
+            //dmkedm
             ),
           ],
         ),
