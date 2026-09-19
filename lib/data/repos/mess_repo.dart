@@ -123,4 +123,23 @@ class MessRepository {
       return null;
     }
   }
+
+  /// Updates the owner's mess name
+  Future<void> updateMessName({required String newName}) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User is not authenticated.');
+      }
+
+      await _client
+          .from('messes')
+          .update({'mess_name': newName.trim()})
+          .eq('owner_id', userId);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('An unexpected error occurred while updating the mess name.');
+    }
+  }
 }

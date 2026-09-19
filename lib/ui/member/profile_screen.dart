@@ -64,7 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC74330))) 
+          : SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,8 +429,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-            );
+              MaterialPageRoute(builder: (context) => EditProfileScreen(currentName: _fullName)),
+            ).then((_) => _loadProfileData());
           },
           text: 'Edit Profile',
           prefixIcon: const Icon(Icons.edit, size: 18, color: Colors.white),
