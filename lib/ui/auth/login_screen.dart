@@ -3,8 +3,7 @@ import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../data/services/supabase_auth_service.dart';
+import '../../logic/controllers/auth_controller.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +15,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = SupabaseAuthService();
+  final _authController = AuthController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -31,30 +30,17 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      final response = await _authService.signInWithEmailPassword(
+      final role = await _authController.signIn(
         _emailController.text.trim(),
         _passwordController.text,
       );
       
       if (!mounted) return;
 
-      final userId = response.user?.id;
-      if (userId != null) {
-        final profile = await Supabase.instance.client
-            .from('profiles')
-            .select('role')
-            .eq('id', userId)
-            .maybeSingle();
-
-        if (!mounted) return;
-
-        if (profile != null && profile['role'] == 'owner') {
-          context.go('/owner/dashboard');
-        } else if (profile != null && profile['role'] == 'member') {
-          context.go('/member/home');
-        } else {
-          context.go('/role');
-        }
+      if (role == 'owner') {
+        context.go('/owner/dashboard');
+      } else if (role == 'member') {
+        context.go('/member/home');
       } else {
         context.go('/role');
       }

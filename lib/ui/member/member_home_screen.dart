@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'feedback_screen.dart';
 import 'notice_board_screen.dart';
-import '../../data/repos/profile_repo.dart';
 import '../../data/repos/menu_repo.dart';
+import '../../logic/controllers/member_dashboard_controller.dart';
 
 class MemberHomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToMenu;
@@ -24,25 +24,26 @@ class MemberHomeScreen extends StatefulWidget {
 
 class _MemberHomeScreenState extends State<MemberHomeScreen> {
   String _selectedMeal = 'Lunch';
-  String? _memberName;
-  bool _isLoadingName = true;
+  late final MemberDashboardController _dashboardController;
   Future<List<Map<String, dynamic>>>? _todayMenuFuture;
 
   @override
   void initState() {
     super.initState();
-    _fetchMemberName();
+    _dashboardController = MemberDashboardController();
+    _dashboardController.addListener(_onStateChange);
     _todayMenuFuture = MenuRepository().getTodayMenu();
   }
 
-  Future<void> _fetchMemberName() async {
-    final name = await ProfileRepository().getUserFullName();
-    if (mounted) {
-      setState(() {
-        _memberName = name;
-        _isLoadingName = false;
-      });
-    }
+  void _onStateChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _dashboardController.removeListener(_onStateChange);
+    _dashboardController.dispose();
+    super.dispose();
   }
 
   final Map<String, dynamic> _mealData = {
@@ -180,7 +181,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
               ),
               Row(
                 children: [
-                  if (_isLoadingName)
+                  if (_dashboardController.isLoading && _dashboardController.memberName == null)
                     const SizedBox(
                       height: 24,
                       width: 24,
@@ -188,7 +189,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                     )
                   else
                     Text(
-                      _memberName ?? 'User',
+                      _dashboardController.memberName ?? 'User',
                       style: TextStyle(
                         color: textDark,
                         fontSize: 24,
@@ -196,9 +197,9 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  if (!_isLoadingName)
+                  if (!(_dashboardController.isLoading && _dashboardController.memberName == null))
                     const SizedBox(width: 4.0),
-                  if (!_isLoadingName)
+                  if (!(_dashboardController.isLoading && _dashboardController.memberName == null))
                     const Text('👋', style: TextStyle(fontSize: 20)),
                 ],
               ),

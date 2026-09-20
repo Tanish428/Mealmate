@@ -92,3 +92,5 @@ class BroadcastRepository {
     }
   }
 }
+
+typedef BroadcastRepo = BroadcastRepository;

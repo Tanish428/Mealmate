@@ -143,3 +143,5 @@ class FeedbackRepository {
     }
   }
 }
+
+typedef FeedbackRepo = FeedbackRepository;

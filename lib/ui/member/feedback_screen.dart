@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/repos/feedback_repo.dart';
+import '../../logic/controllers/feedback_form_controller.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 
@@ -16,7 +16,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   int _commentLength = 0;
   bool _isLoading = false;
   final TextEditingController _commentController = TextEditingController();
-  final FeedbackRepository _feedbackRepo = FeedbackRepository();
+  final FeedbackFormController _feedbackController = FeedbackFormController();
 
   final List<String> _meals = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -63,9 +63,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     });
 
     try {
-      await _feedbackRepo.submitFeedback(
-        message: message,
-        rating: _rating,
+      await _feedbackController.submitFeedback(
+        commentOverride: message,
+        ratingOverride: _rating,
       );
 
       if (!mounted) return;

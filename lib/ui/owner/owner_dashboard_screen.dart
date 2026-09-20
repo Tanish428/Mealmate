@@ -5,7 +5,7 @@ import 'surplus_allocation_screen.dart';
 import 'broadcast_screen.dart';
 import 'owner_feedback_screen.dart';
 import '../common/custom_button.dart';
-import '../../data/repos/mess_repo.dart';
+import '../../logic/controllers/owner_dashboard_controller.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   final VoidCallback? onNavigateToMenu;
@@ -18,23 +18,24 @@ class OwnerDashboardScreen extends StatefulWidget {
 }
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
-  String? _messName;
-  bool _isLoadingName = true;
+  late final OwnerDashboardController _controller;
 
   @override
   void initState() {
     super.initState();
-    _fetchMessName();
+    _controller = OwnerDashboardController();
+    _controller.addListener(_onStateChange);
   }
 
-  Future<void> _fetchMessName() async {
-    final name = await MessRepository().getOwnerMessName();
-    if (mounted) {
-      setState(() {
-        _messName = name;
-        _isLoadingName = false;
-      });
-    }
+  void _onStateChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onStateChange);
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -47,9 +48,15 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _DashboardHeader(messName: _messName, isLoading: _isLoadingName),
+              _DashboardHeader(
+                messName: _controller.messName,
+                isLoading: _controller.isLoading,
+              ),
               const SizedBox(height: 24.0),
-              const _NextMealCard(),
+              _NextMealCard(
+                mealTitle: _controller.stats?.nextMealTitle,
+                mealTime: _controller.stats?.nextMealTime,
+              ),
               const SizedBox(height: 32.0),
               const _QuickActionsSection(),
               const SizedBox(height: 24.0),
@@ -98,7 +105,10 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _NextMealCard extends StatelessWidget {
-  const _NextMealCard();
+  final String? mealTitle;
+  final String? mealTime;
+
+  const _NextMealCard({this.mealTitle, this.mealTime});
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +147,7 @@ class _NextMealCard extends StatelessWidget {
                           .textTheme
                           .bodySmall
                           ?.copyWith(color: Colors.grey.shade600)),
-                  Text("Lunch",
+                  Text(mealTitle ?? "Lunch",
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium
@@ -157,7 +167,7 @@ class _NextMealCard extends StatelessWidget {
                   children: [
                     Icon(Icons.access_time, size: 14, color: Colors.red.shade700),
                     const SizedBox(width: 4.0),
-                    Text("12:30 PM",
+                    Text(mealTime ?? "12:30 PM",
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
