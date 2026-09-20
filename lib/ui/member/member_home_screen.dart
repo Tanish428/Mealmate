@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'feedback_screen.dart';
 import 'notice_board_screen.dart';
-import '../../data/repositories/profile_repo.dart';
+import '../../data/repos/profile_repo.dart';
 import '../../data/repos/menu_repo.dart';
 
 class MemberHomeScreen extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../common/custom_button.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/repositories/profile_repo.dart';
+import '../../data/repos/profile_repo.dart';
 
 enum Role { member, owner }
 

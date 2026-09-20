@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/services/supabase_auth_service.dart';
 import 'edit_profile_screen.dart';
 
-import '../../data/repositories/profile_repo.dart';
+import '../../data/repos/profile_repo.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

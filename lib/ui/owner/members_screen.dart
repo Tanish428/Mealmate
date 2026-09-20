@@ -1,21 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/repos/mess_repo.dart';
-
-class MemberData {
-  final String id;
-  final String name;
-  final String initials;
-  final Color avatarBgColor;
-  final Color avatarTextColor;
-
-  const MemberData({
-    required this.id,
-    required this.name,
-    required this.initials,
-    required this.avatarBgColor,
-    required this.avatarTextColor,
-  });
-}
+import '../../data/models/user_model.dart';
 
 class MembersScreen extends StatefulWidget {
   const MembersScreen({super.key});
@@ -27,16 +12,6 @@ class MembersScreen extends StatefulWidget {
 class _MembersScreenState extends State<MembersScreen> {
   final MessRepository _messRepo = MessRepository();
   late Future<List<Map<String, dynamic>>> _membersFuture;
-
-  final List<(Color, Color)> _avatarColors = [
-    (Colors.red.shade50, Colors.red.shade700),
-    (Colors.orange.shade50, Colors.orange.shade800),
-    (Colors.green.shade50, Colors.green.shade800),
-    (Colors.blue.shade50, Colors.blue.shade800),
-    (Colors.purple.shade50, Colors.purple.shade800),
-    (Colors.teal.shade50, Colors.teal.shade800),
-    (Colors.pink.shade50, Colors.pink.shade800),
-  ];
 
   @override
   void initState() {
@@ -50,28 +25,8 @@ class _MembersScreenState extends State<MembersScreen> {
     });
   }
 
-  String _extractInitials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts.first.isEmpty) return 'M';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-  }
-
-  MemberData _mapToMemberData(Map<String, dynamic> data, int index) {
-    final rawName = data['full_name'] as String?;
-    final role = data['role'] as String?;
-    final name = (rawName != null && rawName.trim().isNotEmpty)
-        ? rawName.trim()
-        : (role != null && role.isNotEmpty ? 'Member (${role.toUpperCase()})' : 'Active Member');
-    final colors = _avatarColors[index % _avatarColors.length];
-
-    return MemberData(
-      id: data['id']?.toString() ?? index.toString(),
-      name: name,
-      initials: _extractInitials(name),
-      avatarBgColor: colors.$1,
-      avatarTextColor: colors.$2,
-    );
+  UserModel _mapToMemberData(Map<String, dynamic> data, int index) {
+    return UserModel.fromMap(data, index: index);
   }
 
   @override
@@ -285,7 +240,7 @@ class _MembersScreenState extends State<MembersScreen> {
 }
 
 class _MemberListTile extends StatelessWidget {
-  final MemberData member;
+  final UserModel member;
 
   const _MemberListTile({required this.member});
 
