@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'feedback_screen.dart';
 import 'notice_board_screen.dart';
-import '../../data/repositories/profile_repo.dart';
+import '../../data/repos/menu_repo.dart';
+import '../../logic/controllers/member_dashboard_controller.dart';
 
 class MemberHomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToMenu;
@@ -22,23 +24,26 @@ class MemberHomeScreen extends StatefulWidget {
 
 class _MemberHomeScreenState extends State<MemberHomeScreen> {
   String _selectedMeal = 'Lunch';
-  String? _memberName;
-  bool _isLoadingName = true;
+  late final MemberDashboardController _dashboardController;
+  Future<List<Map<String, dynamic>>>? _todayMenuFuture;
 
   @override
   void initState() {
     super.initState();
-    _fetchMemberName();
+    _dashboardController = MemberDashboardController();
+    _dashboardController.addListener(_onStateChange);
+    _todayMenuFuture = MenuRepository().getTodayMenu();
   }
 
-  Future<void> _fetchMemberName() async {
-    final name = await ProfileRepository().getUserFullName();
-    if (mounted) {
-      setState(() {
-        _memberName = name;
-        _isLoadingName = false;
-      });
-    }
+  void _onStateChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _dashboardController.removeListener(_onStateChange);
+    _dashboardController.dispose();
+    super.dispose();
   }
 
   final Map<String, dynamic> _mealData = {
@@ -95,7 +100,23 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             children: [
               _buildHeader(primaryRed, textDark, textGray),
               const SizedBox(height: 24.0),
-              _buildHeroCard(primaryRed, textDark, textGray),
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: _todayMenuFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error loading menu'));
+                  }
+                  return _buildHeroCard(primaryRed, textDark, textGray, snapshot.data ?? []);
+                },
+              ),
               const SizedBox(height: 24.0),
               _buildTodayMealsSection(primaryRed, textDark, textGray),
               const SizedBox(height: 24.0),
@@ -160,7 +181,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
               ),
               Row(
                 children: [
-                  if (_isLoadingName)
+                  if (_dashboardController.isLoading && _dashboardController.memberName == null)
                     const SizedBox(
                       height: 24,
                       width: 24,
@@ -168,7 +189,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                     )
                   else
                     Text(
-                      _memberName ?? 'User',
+                      _dashboardController.memberName ?? 'User',
                       style: TextStyle(
                         color: textDark,
                         fontSize: 24,
@@ -176,9 +197,9 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  if (!_isLoadingName)
+                  if (!(_dashboardController.isLoading && _dashboardController.memberName == null))
                     const SizedBox(width: 4.0),
-                  if (!_isLoadingName)
+                  if (!(_dashboardController.isLoading && _dashboardController.memberName == null))
                     const Text('👋', style: TextStyle(fontSize: 20)),
                 ],
               ),
@@ -265,11 +286,35 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     );
   }
 
-  Widget _buildHeroCard(Color primaryRed, Color textDark, Color textGray) {
+  Widget _buildHeroCard(Color primaryRed, Color textDark, Color textGray, List<Map<String, dynamic>> menuDataList) {
     final Color green = const Color(0xFF4A9054);
     final data = _mealData[_selectedMeal]!;
     final bool isServing = data['statusText'] == 'Serving Now';
     final Color statusColor = isServing ? green : data['statusColor'];
+
+    final selectedMenu = menuDataList.where((m) => m['meal_type'] == _selectedMeal.toLowerCase()).toList();
+    List<Map<String, dynamic>> items = [];
+    if (selectedMenu.isNotEmpty) {
+      final rawItems = selectedMenu.first['items'] as List<dynamic>? ?? [];
+      for (var val in rawItems) {
+        String name = val.toString();
+        bool isVeg = true;
+        bool hasDessert = false;
+        if (val is String && val.startsWith('{')) {
+          try {
+            final map = jsonDecode(val);
+            name = map['name'] ?? name;
+            isVeg = map['isVegetarian'] ?? true;
+            hasDessert = map['hasDessert'] ?? false;
+          } catch (_) {}
+        } else if (val is Map) {
+          name = val['name']?.toString() ?? name;
+          isVeg = val['isVegetarian'] ?? true;
+          hasDessert = val['hasDessert'] ?? false;
+        }
+        items.add({'name': name, 'isVeg': isVeg, 'hasDessert': hasDessert});
+      }
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -347,28 +392,41 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             ),
           ),
           const SizedBox(height: 12.0),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: (data['items'] as List<String>)
-                      .map<Widget>((item) => _buildVegItem(item, textDark))
-                      .toList(),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              child: Text(
+                "No menu published for today yet.",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                  color: textGray,
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: Image.asset(
-                  'assets/images/meal.png',
-                  height: 100,
-                  fit: BoxFit.contain,
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: items
+                        .map<Widget>((item) => _buildMenuItem(item['name'], item['isVeg'], item['hasDessert'], textDark))
+                        .toList(),
+                  ),
                 ),
-              ),
-            ],
-          ),
+                Expanded(
+                  flex: 2,
+                  child: Image.asset(
+                    'assets/images/meal.png',
+                    height: 100,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 16.0),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -420,7 +478,8 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     );
   }
 
-  Widget _buildVegItem(String name, Color textDark) {
+  Widget _buildMenuItem(String name, bool isVeg, bool hasDessert, Color textDark) {
+    Color typeColor = isVeg ? Colors.green : const Color(0xFFC74330);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -429,22 +488,29 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             width: 14,
             height: 14,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.green),
+              border: Border.all(color: typeColor),
               borderRadius: BorderRadius.circular(2.0),
             ),
-            child: const Center(
-              child: Icon(Icons.circle, size: 6, color: Colors.green),
+            child: Center(
+              child: Icon(Icons.circle, size: 6, color: typeColor),
             ),
           ),
           const SizedBox(width: 8.0),
-          Text(
-            name,
-            style: TextStyle(
-              color: textDark,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                color: textDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (hasDessert) ...[
+            const SizedBox(width: 4.0),
+            Icon(Icons.icecream, size: 14, color: Colors.pink.shade300),
+          ],
         ],
       ),
     );

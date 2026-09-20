@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 import '../common/qr_scanner_overlay.dart';
-import '../../data/repos/mess_repo.dart';
+import '../../logic/controllers/qr_scanner_controller.dart';
 
 // Local constants for spacing as per the design constraints
 class AppSpacing {
@@ -22,12 +22,23 @@ class JoinMessScreen extends StatefulWidget {
 
 class _JoinMessScreenState extends State<JoinMessScreen> {
   final TextEditingController _inviteCodeController = TextEditingController();
-  bool _isLoading = false;
-  final MessRepository _messRepo = MessRepository();
+  final QrScannerController _qrController = QrScannerController();
+
+  @override
+  void initState() {
+    super.initState();
+    _qrController.addListener(_onStateChange);
+  }
+
+  void _onStateChange() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
     _inviteCodeController.dispose();
+    _qrController.removeListener(_onStateChange);
+    _qrController.dispose();
     super.dispose();
   }
 
@@ -40,28 +51,18 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    final success = await _qrController.joinMessWithCode(inviteCode);
+    if (!mounted) return;
 
-    try {
-      await _messRepo.joinMess(inviteCode: inviteCode);
-      if (!mounted) return;
+    if (success) {
       context.go('/member/home');
-    } catch (e) {
-      if (!mounted) return;
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
+          content: Text(_qrController.errorMessage ?? 'Failed to join mess.'),
           backgroundColor: Colors.red.shade400,
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -247,7 +248,7 @@ class _JoinMessScreenState extends State<JoinMessScreen> {
           SizedBox(
             width: double.infinity,
             height: 56.0,
-            child: _isLoading 
+            child: _qrController.isProcessing 
                 ? Container(
                     decoration: BoxDecoration(
                       color: primaryColor,

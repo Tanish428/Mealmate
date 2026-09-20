@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../data/repos/menu_repo.dart';
 
 class MenuViewScreen extends StatefulWidget {
   const MenuViewScreen({super.key});
@@ -8,8 +11,11 @@ class MenuViewScreen extends StatefulWidget {
 }
 
 class _MenuViewScreenState extends State<MenuViewScreen> {
-  String _selectedDate = 'Wed';
+  late DateTime _selectedDate;
   String _selectedFilter = 'All';
+  bool _isLoading = false;
+  List<Map<String, dynamic>> _currentMenuData = [];
+  final List<DateTime> _weekDates = [];
 
   final Color bgColor = const Color(0xFFFAF7F5);
   final Color primaryRed = const Color(0xFFC74330);
@@ -18,141 +24,73 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
   final Color green = const Color(0xFF4A9054);
   final Color lightGreen = const Color(0xFFE8F5E9);
 
-  final List<Map<String, String>> _weekDates = [
-    {'day': 'Mon', 'date': '14'},
-    {'day': 'Tue', 'date': '15'},
-    {'day': 'Wed', 'date': '16'},
-    {'day': 'Thu', 'date': '17'},
-    {'day': 'Fri', 'date': '18'},
-    {'day': 'Sat', 'date': '19'},
-    {'day': 'Sun', 'date': '20'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    for (int i = 0; i < 7; i++) {
+      _weekDates.add(now.add(Duration(days: i)));
+    }
+    _selectedDate = _weekDates.first;
+    _fetchMenuForDate(_selectedDate);
+  }
 
-  final Map<String, Map<String, List<Map<String, dynamic>>>> _weeklyMenu = {
-    'Mon': {
-      'Breakfast': [
-        {'name': 'Aloo Paratha', 'isVeg': true},
-        {'name': 'Curd', 'isVeg': true},
-        {'name': 'Omelette', 'isVeg': false},
-      ],
-      'Lunch': [
-        {'name': 'Rajma Chawal', 'isVeg': true},
-        {'name': 'Fish Fry', 'isVeg': false},
-        {'name': 'Roti', 'isVeg': true},
-      ],
-      'Dinner': [
-        {'name': 'Mix Veg', 'isVeg': true},
-        {'name': 'Chicken Biryani', 'isVeg': false},
-        {'name': 'Roti', 'isVeg': true},
-      ],
-    },
-    'Tue': {
-      'Breakfast': [
-        {'name': 'Upma', 'isVeg': true},
-        {'name': 'Banana', 'isVeg': true},
-      ],
-      'Lunch': [
-        {'name': 'Chole Bhature', 'isVeg': true},
-        {'name': 'Egg Curry', 'isVeg': false},
-        {'name': 'Rice', 'isVeg': true},
-      ],
-      'Dinner': [
-        {'name': 'Palak Paneer', 'isVeg': true},
-        {'name': 'Butter Chicken', 'isVeg': false},
-        {'name': 'Naan', 'isVeg': true},
-      ],
-    },
-    'Wed': {
-      'Breakfast': [
-        {'name': 'Idli Sambar', 'isVeg': true},
-        {'name': 'Poha', 'isVeg': true},
-        {'name': 'Boiled Egg', 'isVeg': false},
-      ],
-      'Lunch': [
-        {'name': 'Paneer Butter Masala', 'isVeg': true},
-        {'name': 'Chicken Curry', 'isVeg': false},
-        {'name': 'Dal Tadka', 'isVeg': true},
-        {'name': 'Steamed Rice', 'isVeg': true},
-        {'name': 'Fresh Chapatis', 'isVeg': true},
-      ],
-      'Dinner': [
-        {'name': 'Aloo Gobi', 'isVeg': true},
-        {'name': 'Egg Curry', 'isVeg': false},
-        {'name': 'Jeera Rice', 'isVeg': true},
-        {'name': 'Roti', 'isVeg': true},
-        {'name': 'Gulab Jamun', 'isVeg': true},
-      ],
-    },
-    'Thu': {
-      'Breakfast': [
-        {'name': 'Masala Dosa', 'isVeg': true},
-        {'name': 'Tea/Coffee', 'isVeg': true},
-      ],
-      'Lunch': [
-        {'name': 'Kadhi Pakora', 'isVeg': true},
-        {'name': 'Mutton Curry', 'isVeg': false},
-        {'name': 'Rice', 'isVeg': true},
-      ],
-      'Dinner': [
-        {'name': 'Bhindi Masala', 'isVeg': true},
-        {'name': 'Chicken Tikka', 'isVeg': false},
-        {'name': 'Roti', 'isVeg': true},
-      ],
-    },
-    'Fri': {
-      'Breakfast': [
-        {'name': 'Puri Sabzi', 'isVeg': true},
-        {'name': 'Omelette', 'isVeg': false},
-      ],
-      'Lunch': [
-        {'name': 'Dal Makhani', 'isVeg': true},
-        {'name': 'Fish Curry', 'isVeg': false},
-        {'name': 'Rice', 'isVeg': true},
-      ],
-      'Dinner': [
-        {'name': 'Matar Paneer', 'isVeg': true},
-        {'name': 'Egg Bhurji', 'isVeg': false},
-        {'name': 'Naan', 'isVeg': true},
-      ],
-    },
-    'Sat': {
-      'Breakfast': [
-        {'name': 'Poha', 'isVeg': true},
-        {'name': 'Jalebi', 'isVeg': true},
-      ],
-      'Lunch': [
-        {'name': 'Veg Biryani', 'isVeg': true},
-        {'name': 'Chicken Biryani', 'isVeg': false},
-        {'name': 'Raita', 'isVeg': true},
-      ],
-      'Dinner': [
-        {'name': 'Baingan Bharta', 'isVeg': true},
-        {'name': 'Roti', 'isVeg': true},
-        {'name': 'Ice Cream', 'isVeg': true},
-      ],
-    },
-    'Sun': {
-      'Breakfast': [
-        {'name': 'Chole Kulche', 'isVeg': true},
-        {'name': 'Lassi', 'isVeg': true},
-      ],
-      'Lunch': [
-        {'name': 'Veg Pulao', 'isVeg': true},
-        {'name': 'Mutton Rogan Josh', 'isVeg': false},
-        {'name': 'Roti', 'isVeg': true},
-      ],
-      'Dinner': [
-        {'name': 'Malai Kofta', 'isVeg': true},
-        {'name': 'Chicken Korma', 'isVeg': false},
-        {'name': 'Roti', 'isVeg': true},
-      ],
-    },
-  };
+  Future<void> _fetchMenuForDate(DateTime date) async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final data = await MenuRepository().getMenuForDate(date);
+      if (mounted) {
+        setState(() {
+          _currentMenuData = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading menu: $e')),
+        );
+      }
+    }
+  }
+
+  bool _hasMeal(String mealType) {
+    return _currentMenuData.any((m) => m['meal_type'].toString().toLowerCase() == mealType.toLowerCase());
+  }
+
+  List<Map<String, dynamic>> _getMealItems(String mealType) {
+    final meal = _currentMenuData.firstWhere(
+      (m) => m['meal_type'].toString().toLowerCase() == mealType.toLowerCase(),
+      orElse: () => {'items': []},
+    );
+    final rawItems = meal['items'] as List<dynamic>? ?? [];
+    return rawItems.map((val) {
+      String name = val.toString();
+      bool isVeg = true;
+      bool hasDessert = false;
+      if (val is String && val.startsWith('{')) {
+        try {
+          final map = jsonDecode(val);
+          name = map['name'] ?? name;
+          isVeg = map['isVegetarian'] ?? true;
+          hasDessert = map['hasDessert'] ?? false;
+        } catch (_) {}
+      } else if (val is Map) {
+        name = val['name']?.toString() ?? name;
+        isVeg = val['isVegetarian'] ?? true;
+        hasDessert = val['hasDessert'] ?? false;
+      }
+      return {'name': name, 'isVeg': isVeg, 'hasDessert': hasDessert};
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final menu = _weeklyMenu[_selectedDate] ?? _weeklyMenu['Wed']!;
-
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -169,48 +107,63 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
               const SizedBox(height: 20.0),
               _buildFiltersRow(),
               const SizedBox(height: 24.0),
-              if (menu.containsKey('Breakfast')) ...[
-                _buildMealCard(
-                  'Breakfast',
-                  '7:00 AM – 9:00 AM',
-                  Icons.wb_sunny_outlined,
-                  Colors.orange,
-                  menu['Breakfast']!,
-                ),
-                const SizedBox(height: 20.0),
-              ],
-              if (menu.containsKey('Lunch')) ...[
-                _buildMealCard(
-                  'Lunch',
-                  '12:30 PM – 2:30 PM',
-                  Icons.restaurant,
-                  primaryRed,
-                  menu['Lunch']!,
-                ),
-                const SizedBox(height: 20.0),
-              ],
-              if (menu.containsKey('Dinner')) ...[
-                _buildMealCard(
-                  'Dinner',
-                  '7:30 PM – 9:30 PM',
-                  Icons.nightlight_round,
-                  Colors.grey.shade700,
-                  menu['Dinner']!,
-                ),
-                const SizedBox(height: 24.0),
+              if (_isLoading)
+                const Center(child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ))
+              else ...[
+                if (_hasMeal('breakfast')) ...[
+                  _buildMealCard(
+                    'Breakfast',
+                    '7:30 AM – 9:30 AM',
+                    Icons.wb_sunny_outlined,
+                    Colors.orange,
+                    _getMealItems('breakfast'),
+                  ),
+                  const SizedBox(height: 20.0),
+                ],
+                if (_hasMeal('lunch')) ...[
+                  _buildMealCard(
+                    'Lunch',
+                    '12:30 PM – 2:30 PM',
+                    Icons.restaurant,
+                    primaryRed,
+                    _getMealItems('lunch'),
+                  ),
+                  const SizedBox(height: 20.0),
+                ],
+                if (_hasMeal('dinner')) ...[
+                  _buildMealCard(
+                    'Dinner',
+                    '7:30 PM – 9:30 PM',
+                    Icons.nightlight_round,
+                    Colors.grey.shade700,
+                    _getMealItems('dinner'),
+                  ),
+                  const SizedBox(height: 24.0),
+                ],
+                if (!_hasMeal('breakfast') && !_hasMeal('lunch') && !_hasMeal('dinner'))
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'No menu available for this date.',
+                        style: TextStyle(color: textGray, fontSize: 16),
+                      ),
+                    ),
+                  ),
               ],
             ],
           ),
         ),
       ),
-
     );
   }
 
   Widget _buildTopBranding() {
     return Row(
       children: [
-        // App Logo Icon
         Container(
           padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
@@ -308,18 +261,25 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
       clipBehavior: Clip.none,
       child: Row(
         children: _weekDates.map((dateObj) {
-          final isSelected = _selectedDate == dateObj['day'];
+          final isSelected = _selectedDate.year == dateObj.year &&
+              _selectedDate.month == dateObj.month &&
+              _selectedDate.day == dateObj.day;
+          
+          final dayStr = DateFormat('E').format(dateObj); // Mon, Tue
+          final dateStr = DateFormat('d').format(dateObj); // 14, 15
+
           return Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  _selectedDate = dateObj['day']!;
+                  _selectedDate = dateObj;
                 });
+                _fetchMenuForDate(dateObj);
               },
               child: _buildCalendarDay(
-                dateObj['day']!,
-                dateObj['date']!,
+                dayStr,
+                dateStr,
                 isSelected,
               ),
             ),
@@ -510,7 +470,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                         children: filteredItems
                             .map(
                               (item) =>
-                                  _buildMenuItem(item['name'], item['isVeg']),
+                                  _buildMenuItem(item['name'], item['isVeg'], item['hasDessert']),
                             )
                             .toList(),
                       ),
@@ -530,7 +490,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
     );
   }
 
-  Widget _buildMenuItem(String name, bool isVeg) {
+  Widget _buildMenuItem(String name, bool isVeg, bool hasDessert) {
     Color typeColor = isVeg ? green : primaryRed;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -557,6 +517,10 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (hasDessert) ...[
+            const SizedBox(width: 4.0),
+            Icon(Icons.icecream, size: 14, color: Colors.pink.shade300),
+          ],
         ],
       ),
     );

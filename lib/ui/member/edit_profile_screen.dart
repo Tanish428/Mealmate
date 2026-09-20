@@ -1,14 +1,59 @@
 import 'package:flutter/material.dart';
+import '../../data/repos/profile_repo.dart';
 
-class EditProfileScreen extends StatelessWidget {
-  const EditProfileScreen({super.key});
+class EditProfileScreen extends StatefulWidget {
+  final String? currentName;
+  const EditProfileScreen({super.key, this.currentName});
 
+  @override
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
   // Theme Colors — matching all screens
   static const Color _bgColor = Color(0xFFFAF7F5);
   static const Color _primaryRed = Color(0xFFC74330);
   static const Color _textDark = Color(0xFF1E1E1E);
   static const Color _textGray = Color(0xFF757575);
   static const Color _lightRed = Color(0xFFFCEAE8);
+
+  bool _isLoading = false;
+  late TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.currentName ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name cannot be empty')));
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await ProfileRepository().updateFullName(newName: _nameController.text);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully')));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +69,11 @@ class EditProfileScreen extends StatelessWidget {
               const SizedBox(height: 24.0),
               const _AvatarSectionWidget(),
               const SizedBox(height: 24.0),
-              const _FormContainerWidget(),
+              _FormContainerWidget(nameController: _nameController),
               const SizedBox(height: 24.0),
               _ActionsWidget(
-                onSave: () => Navigator.pop(context),
+                isLoading: _isLoading,
+                onSave: _saveProfile,
                 onCancel: () => Navigator.pop(context),
               ),
               const SizedBox(height: 24.0),
@@ -35,10 +81,8 @@ class EditProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-
     );
   }
-
 }
 
 // =====================================================================
@@ -54,47 +98,33 @@ class _HeaderWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          decoration: const BoxDecoration(
-            color: EditProfileScreen._lightRed,
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back,
-                color: EditProfileScreen._primaryRed),
-            onPressed: onBack,
+        InkWell(
+          onTap: onBack,
+          borderRadius: BorderRadius.circular(30.0),
+          child: Container(
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.arrow_back_ios_new, size: 18, color: _EditProfileScreenState._textDark),
           ),
         ),
         const SizedBox(width: 16.0),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: const TextSpan(
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: EditProfileScreen._textDark,
-                ),
-                children: [
-                  TextSpan(text: 'Edit '),
-                  TextSpan(
-                    text: 'Profile',
-                    style: TextStyle(color: EditProfileScreen._primaryRed),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4.0),
-            const Text(
-              'Keep your information up to date',
-              style: TextStyle(
-                color: EditProfileScreen._textGray,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        const Text(
+          'Edit Profile',
+          style: TextStyle(
+            color: _EditProfileScreenState._textDark,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -102,7 +132,7 @@ class _HeaderWidget extends StatelessWidget {
 }
 
 // =====================================================================
-// Avatar — profile image with camera badge
+// Avatar Section — photo + change button
 // =====================================================================
 
 class _AvatarSectionWidget extends StatelessWidget {
@@ -116,57 +146,41 @@ class _AvatarSectionWidget extends StatelessWidget {
           Stack(
             children: [
               Container(
-                width: 96,
-                height: 96,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  color: Colors.grey.shade200,
                   border: Border.all(color: Colors.white, width: 4),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
+                      blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/person.png',
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: EditProfileScreen._lightRed,
-                        child: const Icon(Icons.person,
-                            size: 48,
-                            color: EditProfileScreen._primaryRed),
-                      );
-                    },
-                  ),
-                ),
+                child: const Icon(Icons.person, size: 50, color: Colors.grey),
               ),
               Positioned(
                 bottom: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    color: EditProfileScreen._primaryRed,
+                  padding: const EdgeInsets.all(6.0),
+                  decoration: const BoxDecoration(
+                    color: _EditProfileScreenState._primaryRed,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
                   ),
-                  child: const Icon(Icons.camera_alt,
-                      size: 16, color: Colors.white),
+                  child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 16.0),
           const Text(
             'Change Photo',
             style: TextStyle(
-              color: EditProfileScreen._primaryRed,
+              color: _EditProfileScreenState._primaryRed,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -175,7 +189,7 @@ class _AvatarSectionWidget extends StatelessWidget {
           const Text(
             'JPG, PNG (Max 5 MB)',
             style: TextStyle(
-              color: EditProfileScreen._textGray,
+              color: _EditProfileScreenState._textGray,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -191,7 +205,8 @@ class _AvatarSectionWidget extends StatelessWidget {
 // =====================================================================
 
 class _FormContainerWidget extends StatelessWidget {
-  const _FormContainerWidget();
+  final TextEditingController nameController;
+  const _FormContainerWidget({required this.nameController});
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +229,7 @@ class _FormContainerWidget extends StatelessWidget {
             icon: Icons.person_outline,
             label: 'Full Name',
             hintText: 'Enter your full name',
+            controller: nameController,
           ),
           const Divider(height: 32),
           _buildInputField(
@@ -248,6 +264,7 @@ class _FormContainerWidget extends StatelessWidget {
     required String hintText,
     bool readOnly = false,
     String? helperText,
+    TextEditingController? controller,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,11 +273,11 @@ class _FormContainerWidget extends StatelessWidget {
           margin: const EdgeInsets.only(top: 4.0),
           padding: const EdgeInsets.all(10.0),
           decoration: const BoxDecoration(
-            color: EditProfileScreen._lightRed,
+            color: _EditProfileScreenState._lightRed,
             shape: BoxShape.circle,
           ),
           child:
-              Icon(icon, color: EditProfileScreen._primaryRed, size: 20),
+              Icon(icon, color: _EditProfileScreenState._primaryRed, size: 20),
         ),
         const SizedBox(width: 16.0),
         Expanded(
@@ -270,23 +287,24 @@ class _FormContainerWidget extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  color: EditProfileScreen._textGray,
+                  color: _EditProfileScreenState._textGray,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8.0),
               TextField(
+                controller: controller,
                 readOnly: readOnly,
                 style: const TextStyle(
-                  color: EditProfileScreen._textDark,
+                  color: _EditProfileScreenState._textDark,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
                 decoration: InputDecoration(
                   hintText: hintText,
                   hintStyle: TextStyle(
-                    color: EditProfileScreen._textGray.withValues(alpha: 0.6),
+                    color: _EditProfileScreenState._textGray.withValues(alpha: 0.6),
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                   ),
@@ -294,7 +312,7 @@ class _FormContainerWidget extends StatelessWidget {
                   fillColor: readOnly ? const Color(0xFFF5F5F5) : null,
                   suffixIcon: readOnly
                       ? const Icon(Icons.lock_outline,
-                          size: 18, color: EditProfileScreen._textGray)
+                          size: 18, color: _EditProfileScreenState._textGray)
                       : null,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16.0,
@@ -311,7 +329,7 @@ class _FormContainerWidget extends StatelessWidget {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.0),
                     borderSide: const BorderSide(
-                        color: EditProfileScreen._primaryRed, width: 1.5),
+                        color: _EditProfileScreenState._primaryRed, width: 1.5),
                   ),
                 ),
               ),
@@ -320,7 +338,7 @@ class _FormContainerWidget extends StatelessWidget {
                 Text(
                   helperText,
                   style: const TextStyle(
-                    color: EditProfileScreen._textGray,
+                    color: _EditProfileScreenState._textGray,
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
                   ),
@@ -339,22 +357,22 @@ class _FormContainerWidget extends StatelessWidget {
 // =====================================================================
 
 class _ActionsWidget extends StatelessWidget {
+  final bool isLoading;
   final VoidCallback onSave;
   final VoidCallback onCancel;
 
-  const _ActionsWidget({required this.onSave, required this.onCancel});
+  const _ActionsWidget({required this.onSave, required this.onCancel, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Save Changes — filled red button
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: onSave,
+            onPressed: isLoading ? null : onSave,
             style: ElevatedButton.styleFrom(
-              backgroundColor: EditProfileScreen._primaryRed,
+              backgroundColor: _EditProfileScreenState._primaryRed,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               shape: RoundedRectangleBorder(
@@ -362,7 +380,9 @@ class _ActionsWidget extends StatelessWidget {
               ),
               minimumSize: const Size(double.infinity, 50),
             ),
-            child: const Row(
+            child: isLoading
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.check_circle_outline, size: 18),
@@ -376,14 +396,13 @@ class _ActionsWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12.0),
-        // Cancel — outlined red button
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: onCancel,
+            onPressed: isLoading ? null : onCancel,
             style: OutlinedButton.styleFrom(
-              foregroundColor: EditProfileScreen._primaryRed,
-              side: const BorderSide(color: EditProfileScreen._primaryRed),
+              foregroundColor: _EditProfileScreenState._primaryRed,
+              side: const BorderSide(color: _EditProfileScreenState._primaryRed),
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
@@ -407,4 +426,3 @@ class _ActionsWidget extends StatelessWidget {
     );
   }
 }
-

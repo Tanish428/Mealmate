@@ -1,32 +1,47 @@
 class MenuModel {
-  final String menuId;
+  final String id;
   final String messId;
   final DateTime date;
+  final String? mealType;
+  final List<dynamic> items;
+
+  // Legacy full-day meal item lists
   final List<Map<String, dynamic>> breakfastItems;
   final List<Map<String, dynamic>> lunchItems;
   final List<Map<String, dynamic>> dinnerItems;
 
   const MenuModel({
-    required this.menuId,
+    required this.id,
     required this.messId,
     required this.date,
-    required this.breakfastItems,
-    required this.lunchItems,
-    required this.dinnerItems,
+    this.mealType,
+    this.items = const [],
+    this.breakfastItems = const [],
+    this.lunchItems = const [],
+    this.dinnerItems = const [],
   });
 
+  // Backward compatibility getters
+  String get menuId => id;
+  String get menuDate => date.toIso8601String().split('T')[0];
+
   MenuModel copyWith({
-    String? menuId,
+    String? id,
     String? messId,
     DateTime? date,
+    String? mealType,
+    List<dynamic>? items,
     List<Map<String, dynamic>>? breakfastItems,
     List<Map<String, dynamic>>? lunchItems,
     List<Map<String, dynamic>>? dinnerItems,
+    String? menuId,
   }) {
     return MenuModel(
-      menuId: menuId ?? this.menuId,
+      id: id ?? menuId ?? this.id,
       messId: messId ?? this.messId,
       date: date ?? this.date,
+      mealType: mealType ?? this.mealType,
+      items: items ?? this.items,
       breakfastItems: breakfastItems ?? this.breakfastItems,
       lunchItems: lunchItems ?? this.lunchItems,
       dinnerItems: dinnerItems ?? this.dinnerItems,
@@ -35,9 +50,14 @@ class MenuModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'menuId': menuId,
-      'messId': messId,
-      'date': date,
+      'id': id,
+      'mess_id': messId,
+      'menu_date': menuDate,
+      if (mealType != null) 'meal_type': mealType,
+      'items': items,
+      // Legacy compatibility keys
+      'menuId': id,
+      'date': date.toIso8601String(),
       'breakfastItems': breakfastItems,
       'lunchItems': lunchItems,
       'dinnerItems': dinnerItems,
@@ -45,39 +65,43 @@ class MenuModel {
   }
 
   factory MenuModel.fromMap(Map<String, dynamic> map) {
-    // Parsing safety check: convert Firestore Timestamp to Dart DateTime
-    final dynamic rawDate = map['date'];
+    final dynamic rawDate = map['menu_date'] ?? map['date'];
     DateTime parsedDate;
     if (rawDate != null && rawDate.runtimeType.toString() == 'Timestamp') {
-      // Handle Firestore Timestamp (resolved dynamically)
       parsedDate = (rawDate as dynamic).toDate();
     } else if (rawDate is DateTime) {
       parsedDate = rawDate;
     } else if (rawDate is String) {
-      parsedDate = DateTime.parse(rawDate);
+      parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
     } else {
       parsedDate = DateTime.now();
     }
 
+    final rawItems = map['items'];
+    List<dynamic> parsedItems = [];
+    if (rawItems is List) {
+      parsedItems = rawItems;
+    }
+
+    List<Map<String, dynamic>> parseMapList(dynamic list) {
+      if (list is List) {
+        return list
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+      return <Map<String, dynamic>>[];
+    }
+
     return MenuModel(
-      menuId: map['menuId'] as String,
-      messId: map['messId'] as String,
+      id: (map['id'] ?? map['menuId'] ?? '').toString(),
+      messId: (map['mess_id'] ?? map['messId'] ?? '').toString(),
       date: parsedDate,
-      breakfastItems: map['breakfastItems'] != null
-          ? List<Map<String, dynamic>>.from(
-              (map['breakfastItems'] as List).map((e) => Map<String, dynamic>.from(e)),
-            )
-          : <Map<String, dynamic>>[],
-      lunchItems: map['lunchItems'] != null
-          ? List<Map<String, dynamic>>.from(
-              (map['lunchItems'] as List).map((e) => Map<String, dynamic>.from(e)),
-            )
-          : <Map<String, dynamic>>[],
-      dinnerItems: map['dinnerItems'] != null
-          ? List<Map<String, dynamic>>.from(
-              (map['dinnerItems'] as List).map((e) => Map<String, dynamic>.from(e)),
-            )
-          : <Map<String, dynamic>>[],
+      mealType: (map['meal_type'] ?? map['mealType'])?.toString(),
+      items: parsedItems,
+      breakfastItems: parseMapList(map['breakfastItems']),
+      lunchItems: parseMapList(map['lunchItems']),
+      dinnerItems: parseMapList(map['dinnerItems']),
     );
   }
 }

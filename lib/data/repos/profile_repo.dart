@@ -83,4 +83,23 @@ class ProfileRepository {
       return null;
     }
   }
+
+  /// Updates the user's full name
+  Future<void> updateFullName({required String newName}) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User is not authenticated.');
+      }
+
+      await _client
+          .from('profiles')
+          .update({'full_name': newName.trim()})
+          .eq('id', userId);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('An unexpected error occurred while updating full name.');
+    }
+  }
 }

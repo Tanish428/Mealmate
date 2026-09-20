@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 import '../../data/services/supabase_auth_service.dart';
 import '../../data/repos/mess_repo.dart';
@@ -18,6 +17,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   late TextEditingController _nameController;
   String _inviteCode = '------';
   bool _isLoading = true;
+  
 
   @override
   void initState() {
@@ -169,10 +169,34 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
             ),
           ),
           const SizedBox(height: 8.0),
-          CustomTextField(
-            controller: _nameController,
-            maxLength: 50,
-            hintText: "Enter mess name",
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.restaurant, color: colorScheme.primary, size: 20.0),
+                const SizedBox(width: 12.0),
+                Expanded(
+                  child: Text(
+                    _nameController.text,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8.0),
+          Text(
+            "Mess Name cannot be changed here.",
+            style: textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade500,
+            ),
           ),
           const SizedBox(height: 20.0),
           
@@ -212,16 +236,6 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
             "Location cannot be changed here.",
             style: textTheme.bodySmall?.copyWith(
               color: Colors.grey.shade500,
-            ),
-          ),
-          const SizedBox(height: 32.0),
-          
-          // Save Button
-          SizedBox(
-            width: double.infinity,
-            child: CustomButton(
-              text: "Save",
-              onPressed: () { if (Navigator.of(context).canPop()) { Navigator.pop(context); } else { context.go('/owner/dashboard'); } },
             ),
           ),
         ],
