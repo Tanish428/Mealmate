@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/repos/menu_repo.dart';
+import '../../data/repos/profile_repo.dart';
 
 class MenuViewScreen extends StatefulWidget {
   const MenuViewScreen({super.key});
@@ -16,6 +17,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
   bool _isLoading = false;
   List<Map<String, dynamic>> _currentMenuData = [];
   final List<DateTime> _weekDates = [];
+  List<String> _servedMeals = [];
 
   final Color bgColor = const Color(0xFFFAF7F5);
   final Color primaryRed = const Color(0xFFC74330);
@@ -33,6 +35,20 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
     }
     _selectedDate = _weekDates.first;
     _fetchMenuForDate(_selectedDate);
+    _fetchServedMeals();
+  }
+
+  Future<void> _fetchServedMeals() async {
+    try {
+      final profile = await ProfileRepository().getMemberProfileDetails();
+      if (profile != null && profile['served_meals'] != null) {
+        if (mounted) {
+          setState(() {
+            _servedMeals = List<String>.from(profile['served_meals']);
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchMenuForDate(DateTime date) async {
@@ -57,10 +73,6 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
         );
       }
     }
-  }
-
-  bool _hasMeal(String mealType) {
-    return _currentMenuData.any((m) => m['meal_type'].toString().toLowerCase() == mealType.toLowerCase());
   }
 
   List<Map<String, dynamic>> _getMealItems(String mealType) {
@@ -113,7 +125,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                   child: CircularProgressIndicator(),
                 ))
               else ...[
-                if (_hasMeal('breakfast')) ...[
+                if (_servedMeals.map((e) => e.toLowerCase()).contains('breakfast')) ...[
                   _buildMealCard(
                     'Breakfast',
                     '7:30 AM – 9:30 AM',
@@ -123,7 +135,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                   ),
                   const SizedBox(height: 20.0),
                 ],
-                if (_hasMeal('lunch')) ...[
+                if (_servedMeals.map((e) => e.toLowerCase()).contains('lunch')) ...[
                   _buildMealCard(
                     'Lunch',
                     '12:30 PM – 2:30 PM',
@@ -133,7 +145,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                   ),
                   const SizedBox(height: 20.0),
                 ],
-                if (_hasMeal('dinner')) ...[
+                if (_servedMeals.map((e) => e.toLowerCase()).contains('dinner')) ...[
                   _buildMealCard(
                     'Dinner',
                     '7:30 PM – 9:30 PM',
@@ -143,12 +155,12 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                   ),
                   const SizedBox(height: 24.0),
                 ],
-                if (!_hasMeal('breakfast') && !_hasMeal('lunch') && !_hasMeal('dinner'))
+                if (_servedMeals.isEmpty)
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Text(
-                        'No menu available for this date.',
+                        'No meals currently configured.',
                         style: TextStyle(color: textGray, fontSize: 16),
                       ),
                     ),

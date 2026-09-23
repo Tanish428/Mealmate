@@ -27,7 +27,7 @@ class ProfileRepository {
     }
   }
 
-  /// Fetches the user's full name, falling back to email if missing.
+  /// Fetches the user's full name, falling back to userMetadata then email.
   Future<String?> getUserFullName() async {
     try {
       final user = _client.auth.currentUser;
@@ -42,9 +42,23 @@ class ProfileRepository {
       if (result != null && result['full_name'] != null && result['full_name'].toString().trim().isNotEmpty) {
         return result['full_name'] as String;
       }
+
+      final metaFullName = user.userMetadata?['full_name']?.toString();
+      if (metaFullName != null && metaFullName.trim().isNotEmpty) {
+        return metaFullName.trim();
+      }
+
       return user.email; // Fallback
     } catch (e) {
-      return _client.auth.currentUser?.email;
+      final user = _client.auth.currentUser;
+      if (user != null) {
+        final metaFullName = user.userMetadata?['full_name']?.toString();
+        if (metaFullName != null && metaFullName.trim().isNotEmpty) {
+          return metaFullName.trim();
+        }
+        return user.email;
+      }
+      return null;
     }
   }
 
@@ -55,29 +69,44 @@ class ProfileRepository {
 
       final profileResult = await _client
           .from('profiles')
-          .select('full_name, role, mess_id')
+          .select('full_name, role, mess_id, created_at')
           .eq('id', user.id)
           .maybeSingle();
 
       if (profileResult == null) return null;
 
       String messName = 'Not Assigned';
+      List<String> servedMeals = [];
       if (profileResult['mess_id'] != null) {
         final messResult = await _client
             .from('messes')
-            .select('mess_name')
+            .select('mess_name, served_meals')
             .eq('id', profileResult['mess_id'])
             .maybeSingle();
         if (messResult != null) {
           messName = messResult['mess_name'] as String;
+          servedMeals = List<String>.from(messResult['served_meals'] ?? []);
+        }
+      }
+
+      String fullName = profileResult['full_name']?.toString() ?? '';
+      if (fullName.trim().isEmpty) {
+        final metaFullName = user.userMetadata?['full_name']?.toString();
+        if (metaFullName != null && metaFullName.trim().isNotEmpty) {
+          fullName = metaFullName.trim();
+        } else {
+          fullName = user.email ?? '';
         }
       }
 
       return {
         'email': user.email,
-        'full_name': profileResult['full_name'],
+        'full_name': fullName,
         'role': profileResult['role'],
         'mess_name': messName,
+        'mess_id': profileResult['mess_id'],
+        'created_at': profileResult['created_at'],
+        'served_meals': servedMeals,
       };
     } catch (e) {
       return null;

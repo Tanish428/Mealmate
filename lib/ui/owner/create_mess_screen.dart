@@ -21,9 +21,7 @@ class CreateMessScreen extends StatefulWidget {
 
 class _CreateMessScreenState extends State<CreateMessScreen> {
   bool _acceptDigitalPayments = true;
-  bool _providesBreakfast = false;
-  bool _providesLunch = true;
-  bool _providesDinner = true;
+  final Set<String> _selectedMeals = {};
   bool _isLoading = false;
 
   final TextEditingController _nameController = TextEditingController();
@@ -48,12 +46,19 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
       return;
     }
 
+    if (_selectedMeals.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one meal service.')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await _messRepo.createMess(messName: name);
+      await _messRepo.createMess(messName: name, servedMeals: _selectedMeals.toList());
       if (!mounted) return;
       context.go('/owner/dashboard');
     } catch (e) {
@@ -408,23 +413,32 @@ class _CreateMessScreenState extends State<CreateMessScreen> {
             _MealChip(
               label: 'Breakfast',
               icon: Icons.wb_sunny_outlined,
-              isSelected: _providesBreakfast,
+              isSelected: _selectedMeals.contains('breakfast'),
               activeColor: primaryColor,
-              onTap: () => setState(() => _providesBreakfast = !_providesBreakfast),
+              onTap: () => setState(() {
+                if (_selectedMeals.contains('breakfast')) _selectedMeals.remove('breakfast');
+                else _selectedMeals.add('breakfast');
+              }),
             ),
             _MealChip(
               label: 'Lunch',
               icon: Icons.restaurant,
-              isSelected: _providesLunch,
+              isSelected: _selectedMeals.contains('lunch'),
               activeColor: primaryColor,
-              onTap: () => setState(() => _providesLunch = !_providesLunch),
+              onTap: () => setState(() {
+                if (_selectedMeals.contains('lunch')) _selectedMeals.remove('lunch');
+                else _selectedMeals.add('lunch');
+              }),
             ),
             _MealChip(
               label: 'Dinner',
               icon: Icons.nights_stay_outlined,
-              isSelected: _providesDinner,
+              isSelected: _selectedMeals.contains('dinner'),
               activeColor: primaryColor,
-              onTap: () => setState(() => _providesDinner = !_providesDinner),
+              onTap: () => setState(() {
+                if (_selectedMeals.contains('dinner')) _selectedMeals.remove('dinner');
+                else _selectedMeals.add('dinner');
+              }),
             ),
           ],
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../data/repos/menu_repo.dart';
+import '../../data/repos/mess_repo.dart';
 
 // --- Data Models ---
 class DishModel {
@@ -85,9 +86,9 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
   late List<DateTime> _weekDates;
   List<MealSlotModel> _currentSlots = [];
 
-  List<MealSlotModel> _createEmptySlots() {
-    return [
-      MealSlotModel(
+  List<MealSlotModel> _createEmptySlots(List<String> servedMeals) {
+    final Map<String, MealSlotModel> slotConfig = {
+      'breakfast': MealSlotModel(
         id: '1',
         title: 'Breakfast',
         timeRange: '7:30 AM - 9:30 AM',
@@ -95,7 +96,7 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
         iconData: Icons.wb_sunny_outlined,
         dishes: [],
       ),
-      MealSlotModel(
+      'lunch': MealSlotModel(
         id: '2',
         title: 'Lunch',
         timeRange: '12:30 PM - 2:30 PM',
@@ -103,7 +104,7 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
         iconData: Icons.restaurant,
         dishes: [],
       ),
-      MealSlotModel(
+      'dinner': MealSlotModel(
         id: '3',
         title: 'Dinner',
         timeRange: '7:30 PM - 9:30 PM',
@@ -111,7 +112,12 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
         iconData: Icons.nights_stay_outlined,
         dishes: [],
       ),
-    ];
+    };
+    
+    return servedMeals
+        .map((meal) => slotConfig[meal.toLowerCase()])
+        .whereType<MealSlotModel>()
+        .toList();
   }
 
   @override
@@ -127,7 +133,13 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
     try {
       final dbMenu = await MenuRepository().getMenuForDate(date);
       
-      final emptySlots = _createEmptySlots();
+      final messDetails = await MessRepository().getOwnerMessDetails();
+      List<String> servedMeals = ['breakfast', 'lunch', 'dinner'];
+      if (messDetails != null && messDetails['served_meals'] != null) {
+        servedMeals = List<String>.from(messDetails['served_meals']);
+      }
+      
+      final emptySlots = _createEmptySlots(servedMeals);
       for (var slot in emptySlots) {
         final mealTypeStr = slot.title.toLowerCase();
         final meal = dbMenu.firstWhere(
@@ -170,7 +182,7 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _currentSlots = _createEmptySlots();
+          _currentSlots = _createEmptySlots(['breakfast', 'lunch', 'dinner']);
           
         });
       }
