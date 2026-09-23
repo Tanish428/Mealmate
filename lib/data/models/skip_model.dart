@@ -21,7 +21,7 @@ class SkipModel {
       messId: json['mess_id'] as String,
       memberId: json['member_id'] as String,
       skipDate: DateTime.parse(json['skip_date'] as String),
-      mealType: json['meal_type'] as String,
+      mealType: json['meal_type']?.toString().toLowerCase() ?? 'lunch',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -32,7 +32,7 @@ class SkipModel {
       'mess_id': messId,
       'member_id': memberId,
       'skip_date': skipDate.toIso8601String(),
-      'meal_type': mealType,
+      'meal_type': mealType.toLowerCase(),
       'created_at': createdAt.toIso8601String(),
     };
   }

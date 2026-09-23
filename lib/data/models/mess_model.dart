@@ -6,6 +6,7 @@ class MessModel {
   final DateTime? createdAt;
   final bool billingEnabled;
   final double? perDayRate;
+  final List<String> servedMeals;
 
   const MessModel({
     required this.id,
@@ -15,6 +16,7 @@ class MessModel {
     this.createdAt,
     this.billingEnabled = false,
     this.perDayRate,
+    this.servedMeals = const [],
   });
 
   // Backward compatibility getters
@@ -30,6 +32,7 @@ class MessModel {
     DateTime? createdAt,
     bool? billingEnabled,
     double? perDayRate,
+    List<String>? servedMeals,
     String? messId,
     String? name,
     String? createdBy,
@@ -42,6 +45,7 @@ class MessModel {
       createdAt: createdAt ?? this.createdAt,
       billingEnabled: billingEnabled ?? this.billingEnabled,
       perDayRate: perDayRate ?? this.perDayRate,
+      servedMeals: servedMeals ?? this.servedMeals,
     );
   }
 
@@ -54,6 +58,7 @@ class MessModel {
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       'billing_enabled': billingEnabled,
       if (perDayRate != null) 'per_day_rate': perDayRate,
+      'served_meals': servedMeals,
       // Legacy compatibility keys
       'messId': id,
       'name': messName,
@@ -90,6 +95,7 @@ class MessModel {
       createdAt: parsedCreatedAt,
       billingEnabled: (map['billing_enabled'] ?? map['billingEnabled'] ?? false) == true,
       perDayRate: parsedRate,
+      servedMeals: List<String>.from(map['served_meals'] ?? const []),
     );
   }
 }

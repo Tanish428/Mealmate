@@ -3,7 +3,17 @@ import '../../data/repos/profile_repo.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String? currentName;
-  const EditProfileScreen({super.key, this.currentName});
+  final String? currentEmail;
+  final String? assignedMess;
+  final String? currentRole;
+
+  const EditProfileScreen({
+    super.key, 
+    this.currentName,
+    this.currentEmail,
+    this.assignedMess,
+    this.currentRole,
+  });
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -19,16 +29,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool _isLoading = false;
   late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  late TextEditingController _messController;
+  late TextEditingController _roleController;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.currentName ?? '');
+    _emailController = TextEditingController(text: widget.currentEmail ?? '');
+    _messController = TextEditingController(text: widget.assignedMess ?? 'Not Assigned');
+    _roleController = TextEditingController(text: widget.currentRole ?? 'Unknown');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
+    _messController.dispose();
+    _roleController.dispose();
     super.dispose();
   }
 
@@ -69,7 +88,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 24.0),
               const _AvatarSectionWidget(),
               const SizedBox(height: 24.0),
-              _FormContainerWidget(nameController: _nameController),
+              _FormContainerWidget(
+                nameController: _nameController,
+                emailController: _emailController,
+                messController: _messController,
+                roleController: _roleController,
+              ),
               const SizedBox(height: 24.0),
               _ActionsWidget(
                 isLoading: _isLoading,
@@ -206,7 +230,16 @@ class _AvatarSectionWidget extends StatelessWidget {
 
 class _FormContainerWidget extends StatelessWidget {
   final TextEditingController nameController;
-  const _FormContainerWidget({required this.nameController});
+  final TextEditingController emailController;
+  final TextEditingController messController;
+  final TextEditingController roleController;
+
+  const _FormContainerWidget({
+    required this.nameController,
+    required this.emailController,
+    required this.messController,
+    required this.roleController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -236,12 +269,16 @@ class _FormContainerWidget extends StatelessWidget {
             icon: Icons.email_outlined,
             label: 'Email Address',
             hintText: 'Enter your email',
+            controller: emailController,
+            readOnly: true,
+            helperText: 'Email cannot be changed.',
           ),
           const Divider(height: 32),
           _buildInputField(
             icon: Icons.restaurant,
             label: 'Assigned Mess',
             hintText: 'Campus Central Mess',
+            controller: messController,
             readOnly: true,
             helperText: 'Mess cannot be changed.',
           ),
@@ -250,6 +287,7 @@ class _FormContainerWidget extends StatelessWidget {
             icon: Icons.badge_outlined,
             label: 'Role',
             hintText: 'Student',
+            controller: roleController,
             readOnly: true,
             helperText: 'Role cannot be changed.',
           ),

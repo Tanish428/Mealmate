@@ -21,7 +21,7 @@ class MessRepository {
 
   /// Creates a new mess, retrieves its generated ID, links it to the owner, 
   /// and returns the invite code.
-  Future<String> createMess({required String messName}) async {
+  Future<String> createMess({required String messName, required List<String> servedMeals}) async {
     try {
       final userId = _client.auth.currentUser?.id;
       if (userId == null) {
@@ -35,6 +35,7 @@ class MessRepository {
         'owner_id': userId,
         'mess_name': messName,
         'invite_code': inviteCode,
+        'served_meals': servedMeals,
       }).select('id').single();
 
       final newlyCreatedMessId = response['id'];
@@ -114,7 +115,7 @@ class MessRepository {
 
       final result = await _client
           .from('messes')
-          .select('mess_name, invite_code')
+          .select('mess_name, invite_code, served_meals')
           .eq('owner_id', userId)
           .maybeSingle();
 

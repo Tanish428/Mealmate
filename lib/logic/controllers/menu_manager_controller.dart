@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../data/repos/menu_repo.dart';
+import '../../data/repos/mess_repo.dart';
 
 class DishItem {
   final String id;
@@ -49,12 +50,15 @@ class DishItem {
 
 class MenuManagerController extends ChangeNotifier {
   final MenuRepository _menuRepo;
+  final MessRepository _messRepo;
 
   DateTime _selectedDate = DateTime.now();
-  String _selectedMealSlot = 'breakfast'; // 'breakfast', 'lunch', 'dinner'
+  String _selectedMealSlot = 'lunch'; // default placeholder
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
+  
+  List<String> _servedMeals = [];
 
   // Meal dishes by slot
   final Map<String, List<DishItem>> _slotDishes = {
@@ -63,10 +67,33 @@ class MenuManagerController extends ChangeNotifier {
     'dinner': [],
   };
 
-  MenuManagerController({MenuRepository? menuRepo, bool autoLoad = true})
-      : _menuRepo = menuRepo ?? MenuRepository() {
+  MenuManagerController({MenuRepository? menuRepo, MessRepository? messRepo, bool autoLoad = true})
+      : _menuRepo = menuRepo ?? MenuRepository(),
+        _messRepo = messRepo ?? MessRepository() {
     if (autoLoad) {
-      loadMenuForDate(_selectedDate);
+      _initController();
+    }
+  }
+
+  List<String> get servedMeals => _servedMeals;
+
+  Future<void> _initController() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final details = await _messRepo.getOwnerMessDetails();
+      if (details != null && details['served_meals'] != null) {
+        _servedMeals = List<String>.from(details['served_meals']);
+        if (_servedMeals.isNotEmpty) {
+           _selectedMealSlot = _servedMeals.first.toLowerCase();
+        }
+      }
+      await loadMenuForDate(_selectedDate);
+    } catch (e) {
+      _errorMessage = 'Failed to load config: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

@@ -84,7 +84,7 @@ class AuthController extends ChangeNotifier {
   }
 
   /// Signs up with email and password.
-  Future<AuthResponse> signUp(String email, String password) async {
+  Future<AuthResponse> signUp(String email, String password, String fullName) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -93,7 +93,19 @@ class AuthController extends ChangeNotifier {
       final response = await _authService.signUpWithEmailPassword(
         email.trim(),
         password,
+        fullName,
       );
+      
+      final uid = response.user?.id;
+      if (uid != null) {
+        try {
+          await _client.from('profiles').upsert({
+            'id': uid,
+            'full_name': fullName.trim(),
+            'role': 'member',
+          });
+        } catch (_) {}
+      }
       return response;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');

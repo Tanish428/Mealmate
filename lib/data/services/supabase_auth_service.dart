@@ -27,11 +27,15 @@ class SupabaseAuthService {
   }
 
   /// Sign up with Email and Password
-  Future<AuthResponse> signUpWithEmailPassword(String email, String password) async {
+  Future<AuthResponse> signUpWithEmailPassword(String email, String password, String fullName) async {
     try {
       final response = await _client.auth.signUp(
         email: email,
         password: password,
+        data: {
+          'full_name': fullName.trim(),
+          'role': 'member',
+        },
       );
       return response;
     } on AuthException catch (e) {

@@ -134,9 +134,14 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
             final today = DateTime(now.year, now.month, now.day);
             final tomorrow = today.add(const Duration(days: 1));
             
-            final showTodayBreakfast = !_isMealPeriodEnded('breakfast');
-            final showTodayLunch = !_isMealPeriodEnded('lunch');
-            final showTodayDinner = !_isMealPeriodEnded('dinner');
+            final servedMeals = _controller.servedMeals.map((e) => e.toLowerCase()).toList();
+            if (servedMeals.isEmpty) {
+              return const Center(child: Text("No meals configured"));
+            }
+
+            final showTodayBreakfast = servedMeals.contains('breakfast') && !_controller.isCutoffPassed(today, 'breakfast');
+            final showTodayLunch = servedMeals.contains('lunch') && !_controller.isCutoffPassed(today, 'lunch');
+            final showTodayDinner = servedMeals.contains('dinner') && !_controller.isCutoffPassed(today, 'dinner');
             final showTodaySection = showTodayBreakfast || showTodayLunch || showTodayDinner;
 
             return SingleChildScrollView(
@@ -169,12 +174,18 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
 
                   _buildSectionHeader('Tomorrow', DateFormat('EEE, d MMM yyyy').format(tomorrow)),
                   const SizedBox(height: 16.0),
-                  _buildMealCard(tomorrow, 'Breakfast', '7:30 AM - 9:30 AM', Icons.wb_sunny_outlined, Colors.orange),
-                  const SizedBox(height: 16.0),
-                  _buildMealCard(tomorrow, 'Lunch', '12:30 PM - 2:30 PM', Icons.restaurant, primaryRed),
-                  const SizedBox(height: 16.0),
-                  _buildMealCard(tomorrow, 'Dinner', '7:30 PM - 9:30 PM', Icons.nightlight_round, Colors.indigo),
-                  const SizedBox(height: 24.0),
+                  if (servedMeals.contains('breakfast')) ...[
+                    _buildMealCard(tomorrow, 'Breakfast', '7:30 AM - 9:30 AM', Icons.wb_sunny_outlined, Colors.orange),
+                    const SizedBox(height: 16.0),
+                  ],
+                  if (servedMeals.contains('lunch')) ...[
+                    _buildMealCard(tomorrow, 'Lunch', '12:30 PM - 2:30 PM', Icons.restaurant, primaryRed),
+                    const SizedBox(height: 16.0),
+                  ],
+                  if (servedMeals.contains('dinner')) ...[
+                    _buildMealCard(tomorrow, 'Dinner', '7:30 PM - 9:30 PM', Icons.nightlight_round, Colors.indigo),
+                    const SizedBox(height: 24.0),
+                  ],
                 ],
               ),
             );

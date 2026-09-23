@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repos/menu_repo.dart';
 import '../../data/repos/profile_repo.dart';
 import '../../data/repos/broadcast_repo.dart';
@@ -24,6 +25,7 @@ class MemberDashboardController extends ChangeNotifier {
   List<Map<String, dynamic>> _announcements = [];
 
   List<SkipModel> _allSkips = [];
+  List<String> _servedMeals = [];
   double _attendancePercentage = 0.0;
   String? _messId;
   DateTime? _profileCreatedAt;
@@ -44,7 +46,20 @@ class MemberDashboardController extends ChangeNotifier {
     }
   }
 
-  String? get memberName => _memberName;
+  String? get memberName {
+    if (_memberName != null && _memberName!.trim().isNotEmpty) return _memberName;
+    
+    // Synchronous fallback to auth metadata if profile hasn't loaded yet
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      final metaFullName = user?.userMetadata?['full_name']?.toString();
+      if (metaFullName != null && metaFullName.trim().isNotEmpty) {
+        return metaFullName.trim();
+      }
+    } catch (_) {}
+    
+    return _memberName;
+  }
   String get selectedMeal => _selectedMeal;
   bool get isActiveTab => _isActiveTab;
   bool get isLoading => _isLoading;
@@ -52,6 +67,7 @@ class MemberDashboardController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<Map<String, dynamic>> get announcements => _announcements;
   double get attendancePercentage => _attendancePercentage;
+  List<String> get servedMeals => _servedMeals;
   
   bool isCutoffPassed(DateTime date, String mealType) {
     final now = DateTime.now();
@@ -68,7 +84,7 @@ class MemberDashboardController extends ChangeNotifier {
       case 'lunch':
         return hour >= 10;
       case 'dinner':
-        return hour >= 17;
+        return hour >= 19;
       default:
         return false;
     }
@@ -122,7 +138,7 @@ class MemberDashboardController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      if (_messId == null || _profileCreatedAt == null) {
+      if (_messId == null || _profileCreatedAt == null || _servedMeals.isEmpty) {
         final profile = await _profileRepo.getMemberProfileDetails();
         if (profile == null) throw 'Profile not found';
         
@@ -131,6 +147,7 @@ class MemberDashboardController extends ChangeNotifier {
         if (_messId == null || createdAtStr == null) throw 'Mess ID or Join Date not found';
 
         _profileCreatedAt = DateTime.parse(createdAtStr);
+        _servedMeals = List<String>.from(profile['served_meals'] ?? []);
       }
 
       _allSkips = await _attendanceRepo.getMemberSkips();
@@ -138,7 +155,9 @@ class MemberDashboardController extends ChangeNotifier {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       
-      final totalPossibleMeals = ((now.difference(_profileCreatedAt!).inDays) + 1) * 3;
+      final int mealsPerDay = _servedMeals.isNotEmpty ? _servedMeals.length : 1;
+      final int totalPossibleMeals = ((now.difference(_profileCreatedAt!).inDays) + 1) * mealsPerDay;
+
       final totalPastSkips = _allSkips.where((skip) {
         final skipDay = DateTime(skip.skipDate.year, skip.skipDate.month, skip.skipDate.day);
         if (skipDay.isBefore(today)) return true;
@@ -150,8 +169,11 @@ class MemberDashboardController extends ChangeNotifier {
 
       _attendancePercentage = totalPossibleMeals > 0 
           ? ((totalPossibleMeals - totalPastSkips) / totalPossibleMeals) * 100 
-          : 0.0;
+          : 100.0;
       
+      if (_attendancePercentage < 0) _attendancePercentage = 0.0;
+      if (_attendancePercentage > 100) _attendancePercentage = 100.0;
+
     } catch (e) {
       _errorMessage = 'Failed to load attendance: $e';
     } finally {
@@ -202,6 +224,7 @@ class MemberDashboardController extends ChangeNotifier {
         messId: _messId!,
         startDate: range.start,
         endDate: range.end,
+        activeMeals: _servedMeals.isNotEmpty ? _servedMeals : ['breakfast', 'lunch', 'dinner'],
       );
       await loadAttendanceData();
     } catch (e) {

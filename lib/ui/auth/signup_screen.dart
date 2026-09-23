@@ -3,6 +3,7 @@ import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/services/supabase_auth_service.dart';
+import '../../logic/controllers/auth_controller.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -23,7 +24,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
 
   Future<void> _handleSignup() async {
-    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+    if (_nameController.text.trim().isEmpty || _emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
@@ -39,9 +40,11 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      await _authService.signUpWithEmailPassword(
+      final authController = AuthController();
+      await authController.signUp(
         _emailController.text.trim(),
         _passwordController.text,
+        _nameController.text.trim(),
       );
       if (!mounted) return;
       context.go('/role');

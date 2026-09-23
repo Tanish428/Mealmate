@@ -24,12 +24,12 @@ class AttendanceRepo {
     final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
     if (shouldSkip) {
-      await _supabase.from('skips').insert({
+      await _supabase.from('skips').upsert({
         'mess_id': messId,
         'member_id': userId,
         'skip_date': dateString,
         'meal_type': mealType,
-      });
+      }, onConflict: 'member_id,skip_date,meal_type');
     } else {
       await _supabase
           .from('skips')
@@ -40,17 +40,16 @@ class AttendanceRepo {
     }
   }
 
-  Future<void> addDateRangeSkips({required String messId, required DateTime startDate, required DateTime endDate}) async {
+  Future<void> addDateRangeSkips({required String messId, required DateTime startDate, required DateTime endDate, required List<String> activeMeals}) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw 'User not authenticated';
     
     List<Map<String, dynamic>> records = [];
     DateTime currentDate = startDate;
-    final meals = ['breakfast', 'lunch', 'dinner'];
     
     while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
       final dateString = '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}';
-      for (final meal in meals) {
+      for (final meal in activeMeals) {
         records.add({
           'mess_id': messId,
           'member_id': userId,
@@ -62,7 +61,7 @@ class AttendanceRepo {
     }
     
     if (records.isNotEmpty) {
-      await _supabase.from('skips').insert(records);
+      await _supabase.from('skips').upsert(records, onConflict: 'member_id,skip_date,meal_type');
     }
   }
 

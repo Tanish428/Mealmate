@@ -36,7 +36,16 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
   }
 
   void _onStateChange() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      if (_dashboardController.servedMeals.isNotEmpty) {
+        final served = _dashboardController.servedMeals.map((e) => e.toLowerCase()).toList();
+        if (!served.contains(_selectedMeal.toLowerCase())) {
+          _selectedMeal = _dashboardController.servedMeals.first;
+          _selectedMeal = _selectedMeal[0].toUpperCase() + _selectedMeal.substring(1).toLowerCase();
+        }
+      }
+      setState(() {});
+    }
   }
 
   @override
@@ -112,7 +121,10 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                     );
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error loading menu'));
+                    return const Center(child: Text('Error loading menu'));
+                  }
+                  if (!_dashboardController.isLoading && _dashboardController.servedMeals.isEmpty) {
+                    return const Center(child: Text('No meals currently configured.'));
                   }
                   return _buildHeroCard(primaryRed, textDark, textGray, snapshot.data ?? []);
                 },
@@ -521,6 +533,8 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     Color textDark,
     Color textGray,
   ) {
+    final servedMeals = _dashboardController.servedMeals.map((e) => e.toLowerCase()).toList();
+
     return Column(
       children: [
         Row(
@@ -554,61 +568,63 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           ],
         ),
         const SizedBox(height: 16.0),
-        Row(
-          children: [
-            _buildTimelineCard(
-              title: 'Breakfast',
-              time: '7:00 AM – 9:00 AM',
-              icon: Icons.wb_sunny_outlined,
-              iconColor: Colors.orange,
-              statusText: 'Attended',
-              statusColor: const Color(0xFF4A9054),
-              bgColor: _selectedMeal == 'Breakfast'
-                  ? const Color(0xFFF1F8F1)
-                  : Colors.white,
-              borderColor: _selectedMeal == 'Breakfast'
-                  ? const Color(0xFFD4E7D5)
-                  : Colors.grey.shade300,
-              statusIcon: Icons.check_circle,
-              onTap: () => setState(() => _selectedMeal = 'Breakfast'),
+        if (servedMeals.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'No meals currently configured.',
+                style: TextStyle(color: textGray, fontSize: 14),
+              ),
             ),
-            const SizedBox(width: 12.0),
-            _buildTimelineCard(
-              title: 'Lunch',
-              time: '12:30 PM – 2:30 PM',
-              icon: Icons.restaurant,
-              iconColor: primaryRed,
-              statusText: 'Serving Now',
-              statusColor: primaryRed,
-              bgColor: _selectedMeal == 'Lunch'
-                  ? const Color(0xFFFFF4F2)
-                  : Colors.white,
-              borderColor: _selectedMeal == 'Lunch'
-                  ? primaryRed
-                  : Colors.grey.shade300,
-              statusIcon: Icons.circle,
-              statusIconSize: 8,
-              onTap: () => setState(() => _selectedMeal = 'Lunch'),
-            ),
-            const SizedBox(width: 12.0),
-            _buildTimelineCard(
-              title: 'Dinner',
-              time: '7:00 PM – 9:00 PM',
-              icon: Icons.nightlight_round,
-              iconColor: Colors.grey.shade500,
-              statusText: 'Upcoming',
-              statusColor: Colors.grey.shade600,
-              bgColor: _selectedMeal == 'Dinner'
-                  ? const Color(0xFFF5F5F5)
-                  : Colors.white,
-              borderColor: _selectedMeal == 'Dinner'
-                  ? Colors.grey.shade400
-                  : Colors.grey.shade300,
-              statusIcon: Icons.schedule,
-              onTap: () => setState(() => _selectedMeal = 'Dinner'),
-            ),
-          ],
-        ),
+          )
+        else
+          Row(
+            children: servedMeals.map((meal) {
+              final isSelected = _selectedMeal.toLowerCase() == meal;
+              if (meal == 'breakfast') {
+                return _buildTimelineCard(
+                  title: 'Breakfast',
+                  time: '7:00 AM – 9:00 AM',
+                  icon: Icons.wb_sunny_outlined,
+                  iconColor: Colors.orange,
+                  statusText: 'Attended',
+                  statusColor: const Color(0xFF4A9054),
+                  bgColor: isSelected ? const Color(0xFFF1F8F1) : Colors.white,
+                  borderColor: isSelected ? const Color(0xFFD4E7D5) : Colors.grey.shade300,
+                  statusIcon: Icons.check_circle,
+                  onTap: () => setState(() => _selectedMeal = 'Breakfast'),
+                );
+              } else if (meal == 'lunch') {
+                return _buildTimelineCard(
+                  title: 'Lunch',
+                  time: '12:30 PM – 2:30 PM',
+                  icon: Icons.restaurant,
+                  iconColor: primaryRed,
+                  statusText: 'Serving Now',
+                  statusColor: primaryRed,
+                  bgColor: isSelected ? const Color(0xFFFFF4F2) : Colors.white,
+                  borderColor: isSelected ? primaryRed : Colors.grey.shade300,
+                  statusIcon: Icons.circle,
+                  statusIconSize: 8,
+                  onTap: () => setState(() => _selectedMeal = 'Lunch'),
+                );
+              } else {
+                return _buildTimelineCard(
+                  title: 'Dinner',
+                  time: '7:00 PM – 9:00 PM',
+                  icon: Icons.nightlight_round,
+                  iconColor: Colors.grey.shade500,
+                  statusText: 'Upcoming',
+                  statusColor: Colors.grey.shade600,
+                  bgColor: isSelected ? const Color(0xFFF5F5F5) : Colors.white,
+                  borderColor: isSelected ? Colors.grey.shade400 : Colors.grey.shade300,
+                  statusIcon: Icons.schedule,
+                  onTap: () => setState(() => _selectedMeal = 'Dinner'),
+                );
+              }
+            }).expand((widget) => [widget, const SizedBox(width: 12.0)]).toList()..removeLast(),
+          ),
       ],
     );
   }
