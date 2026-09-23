@@ -55,7 +55,7 @@ class ProfileRepository {
 
       final profileResult = await _client
           .from('profiles')
-          .select('full_name, role, mess_id')
+          .select('full_name, role, mess_id, created_at')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -78,6 +78,8 @@ class ProfileRepository {
         'full_name': profileResult['full_name'],
         'role': profileResult['role'],
         'mess_name': messName,
+        'mess_id': profileResult['mess_id'],
+        'created_at': profileResult['created_at'],
       };
     } catch (e) {
       return null;

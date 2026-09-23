@@ -1,90 +1,72 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/models.dart';
 
 class AttendanceRepo {
-  final FirebaseFirestore _firestore;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  AttendanceRepo({required this._firestore});
+  Future<List<SkipModel>> getMemberSkips() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw 'User not authenticated';
 
-  /// Upserts a user's opt-in/opt-out status for a specific mess and date.
-  /// Uses a composite document ID of `messId_userId_date` to ensure
-  /// one attendance record per user per mess per day.
-  Future<void> updateAttendance({
-    required String messId,
-    required String userId,
-    required DateTime date,
-    bool? breakfast,
-    bool? lunch,
-    bool? dinner,
-  }) async {
-    try {
-      final dateKey =
-          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      final docId = '${messId}_${userId}_$dateKey';
+    final response = await _supabase
+        .from('skips')
+        .select()
+        .eq('member_id', userId)
+        .order('skip_date', ascending: true);
 
-      final data = <String, dynamic>{
-        'messId': messId,
-        'userId': userId,
-        'date': DateTime(date.year, date.month, date.day),
-      };
+    return (response as List).map((json) => SkipModel.fromJson(json)).toList();
+  }
 
-      if (breakfast != null) data['breakfast'] = breakfast;
-      if (lunch != null) data['lunch'] = lunch;
-      if (dinner != null) data['dinner'] = dinner;
+  Future<void> toggleMealSkip({required String messId, required DateTime date, required String mealType, required bool shouldSkip}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw 'User not authenticated';
+    
+    final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-      await _firestore
-          .collection('attendance')
-          .doc(docId)
-          .set(data, SetOptions(merge: true));
-    } on FirebaseException catch (e) {
-      throw 'Database error: ${e.message}';
-    } catch (e) {
-      throw 'An unexpected error occurred';
+    if (shouldSkip) {
+      await _supabase.from('skips').insert({
+        'mess_id': messId,
+        'member_id': userId,
+        'skip_date': dateString,
+        'meal_type': mealType,
+      });
+    } else {
+      await _supabase
+          .from('skips')
+          .delete()
+          .eq('member_id', userId)
+          .eq('skip_date', dateString)
+          .eq('meal_type', mealType);
     }
   }
 
-  /// Returns a real-time stream that calculates the total expected headcount
-  /// for breakfast, lunch, and dinner across all attendance documents for a
-  /// given mess and day. Aggregates boolean opt-in fields and guestCount maps.
-  Stream<Map<String, int>> getLiveHeadCountStream({
-    required String messId,
-    required DateTime date,
-  }) {
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
-
-    return _firestore
-        .collection('attendance')
-        .where('messId', isEqualTo: messId)
-        .where('date', isGreaterThanOrEqualTo: startOfDay)
-        .where('date', isLessThanOrEqualTo: endOfDay)
-        .snapshots()
-        .map((snapshot) {
-      int breakfastCount = 0;
-      int lunchCount = 0;
-      int dinnerCount = 0;
-
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-
-        // Count boolean opt-ins
-        if (data['breakfast'] == true) breakfastCount++;
-        if (data['lunch'] == true) lunchCount++;
-        if (data['dinner'] == true) dinnerCount++;
-
-        // Aggregate guestCount map if present
-        final guestCount = data['guestCount'];
-        if (guestCount is Map) {
-          breakfastCount += (guestCount['breakfast'] as int?) ?? 0;
-          lunchCount += (guestCount['lunch'] as int?) ?? 0;
-          dinnerCount += (guestCount['dinner'] as int?) ?? 0;
-        }
+  Future<void> addDateRangeSkips({required String messId, required DateTime startDate, required DateTime endDate}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw 'User not authenticated';
+    
+    List<Map<String, dynamic>> records = [];
+    DateTime currentDate = startDate;
+    final meals = ['breakfast', 'lunch', 'dinner'];
+    
+    while (currentDate.isBefore(endDate) || currentDate.isAtSameMomentAs(endDate)) {
+      final dateString = '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}';
+      for (final meal in meals) {
+        records.add({
+          'mess_id': messId,
+          'member_id': userId,
+          'skip_date': dateString,
+          'meal_type': meal,
+        });
       }
+      currentDate = currentDate.add(const Duration(days: 1));
+    }
+    
+    if (records.isNotEmpty) {
+      await _supabase.from('skips').insert(records);
+    }
+  }
 
-      return {
-        'breakfast': breakfastCount,
-        'lunch': lunchCount,
-        'dinner': dinnerCount,
-      };
-    });
+  Future<void> deleteSkipById(String skipId) async {
+    await _supabase.from('skips').delete().eq('id', skipId);
   }
 }
