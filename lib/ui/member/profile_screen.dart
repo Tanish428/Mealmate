@@ -19,6 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _email = 'Loading...';
   String _role = 'Loading...';
   String _messName = 'Loading...';
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -37,11 +38,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _email = data['email'] ?? 'No Email';
           _role = data['role'] == 'owner' ? 'Mess Owner' : 'Mess Member';
           _messName = data['mess_name'] ?? 'Not Assigned';
+          _avatarUrl = data['avatar_url'];
         } else {
           _fullName = 'User';
           _email = 'Unknown';
           _role = 'Unknown';
           _messName = 'Unknown';
+          _avatarUrl = null;
         }
         _isLoading = false;
       });
@@ -169,18 +172,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/person.png',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: primaryRed.withValues(alpha: 0.2),
-                            child: Icon(Icons.person, size: 40, color: primaryRed),
-                          );
-                        },
-                      ),
+                      child: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                          ? Image.network(
+                              _avatarUrl!,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: primaryRed.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, size: 40, color: primaryRed),
+                                );
+                              },
+                            )
+                          : Container(
+                              width: 80,
+                              height: 80,
+                              color: primaryRed.withValues(alpha: 0.2),
+                              child: Center(
+                                child: Text(
+                                  _fullName.isNotEmpty ? _fullName[0].toUpperCase() : 'U',
+                                  style: TextStyle(
+                                    color: primaryRed,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -429,7 +448,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => EditProfileScreen(currentName: _fullName)),
+              MaterialPageRoute(
+                builder: (context) => EditProfileScreen(
+                  currentName: _fullName,
+                  currentEmail: _email,
+                  assignedMess: _messName,
+                  currentRole: _role,
+                  avatarUrl: _avatarUrl,
+                ),
+              ),
             ).then((_) => _loadProfileData());
           },
           text: 'Edit Profile',

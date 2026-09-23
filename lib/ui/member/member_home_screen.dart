@@ -172,11 +172,27 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _navigateToProfile,
-          child: const CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.grey,
-            backgroundImage: AssetImage('assets/images/person.png'),
-          ),
+          child: _dashboardController.avatarUrl != null && _dashboardController.avatarUrl!.isNotEmpty
+              ? CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.grey.shade200,
+                  backgroundImage: NetworkImage(_dashboardController.avatarUrl!),
+                  onBackgroundImageError: (_, __) {},
+                )
+              : CircleAvatar(
+                  radius: 28,
+                  backgroundColor: primaryRed.withValues(alpha: 0.2),
+                  child: Text(
+                    (_dashboardController.memberName != null && _dashboardController.memberName!.isNotEmpty)
+                        ? _dashboardController.memberName![0].toUpperCase()
+                        : 'U',
+                    style: TextStyle(
+                      color: primaryRed,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(width: 12.0),
         Expanded(

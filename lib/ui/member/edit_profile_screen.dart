@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../data/repos/profile_repo.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -6,6 +8,7 @@ class EditProfileScreen extends StatefulWidget {
   final String? currentEmail;
   final String? assignedMess;
   final String? currentRole;
+  final String? avatarUrl;
 
   const EditProfileScreen({
     super.key, 
@@ -13,6 +16,7 @@ class EditProfileScreen extends StatefulWidget {
     this.currentEmail,
     this.assignedMess,
     this.currentRole,
+    this.avatarUrl,
   });
 
   @override
@@ -28,10 +32,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   static const Color _lightRed = Color(0xFFFCEAE8);
 
   bool _isLoading = false;
+  bool _isAvatarUploading = false;
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _messController;
   late TextEditingController _roleController;
+  String? _currentAvatarUrl;
+  
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -40,6 +48,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _emailController = TextEditingController(text: widget.currentEmail ?? '');
     _messController = TextEditingController(text: widget.assignedMess ?? 'Not Assigned');
     _roleController = TextEditingController(text: widget.currentRole ?? 'Unknown');
+    _currentAvatarUrl = widget.avatarUrl;
   }
 
   @override
@@ -49,6 +58,69 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _messController.dispose();
     _roleController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    final XFile? image = await _picker.pickImage(source: source, imageQuality: 70, maxWidth: 800);
+    if (image == null) return;
+    
+    setState(() {
+      _isAvatarUploading = true;
+    });
+    
+    try {
+      final File file = File(image.path);
+      final newUrl = await ProfileRepository().uploadAvatar(file);
+      if (mounted) {
+        setState(() {
+          _currentAvatarUrl = newUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Avatar updated successfully')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error uploading avatar: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAvatarUploading = false;
+        });
+      }
+    }
+  }
+
+  void _showAvatarPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _saveProfile() async {
@@ -86,7 +158,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               _HeaderWidget(onBack: () => Navigator.pop(context)),
               const SizedBox(height: 24.0),
-              const _AvatarSectionWidget(),
+              _AvatarSectionWidget(
+                avatarUrl: _currentAvatarUrl,
+                isUploading: _isAvatarUploading,
+                onTap: _showAvatarPicker,
+              ),
               const SizedBox(height: 24.0),
               _FormContainerWidget(
                 nameController: _nameController,
@@ -160,53 +236,79 @@ class _HeaderWidget extends StatelessWidget {
 // =====================================================================
 
 class _AvatarSectionWidget extends StatelessWidget {
-  const _AvatarSectionWidget();
+  final String? avatarUrl;
+  final bool isUploading;
+  final VoidCallback onTap;
+
+  const _AvatarSectionWidget({
+    this.avatarUrl,
+    required this.isUploading,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         children: [
-          Stack(
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey.shade200,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.person, size: 50, color: Colors.grey),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(6.0),
-                  decoration: const BoxDecoration(
-                    color: _EditProfileScreenState._primaryRed,
+          GestureDetector(
+            onTap: isUploading ? null : onTap,
+            child: Stack(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
+                    color: Colors.grey.shade200,
+                    border: Border.all(color: Colors.white, width: 4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                  child: ClipOval(
+                    child: isUploading
+                        ? const Center(child: CircularProgressIndicator())
+                        : (avatarUrl != null && avatarUrl!.isNotEmpty)
+                            ? Image.network(
+                                avatarUrl!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 50, color: Colors.grey),
+                              )
+                            : const Icon(Icons.person, size: 50, color: Colors.grey),
+                  ),
                 ),
-              ),
-            ],
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6.0),
+                    decoration: const BoxDecoration(
+                      color: _EditProfileScreenState._primaryRed,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16.0),
-          const Text(
-            'Change Photo',
-            style: TextStyle(
-              color: _EditProfileScreenState._primaryRed,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          GestureDetector(
+            onTap: isUploading ? null : onTap,
+            child: const Text(
+              'Change Photo',
+              style: TextStyle(
+                color: _EditProfileScreenState._primaryRed,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(height: 4.0),
