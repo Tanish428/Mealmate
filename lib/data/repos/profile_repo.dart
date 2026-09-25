@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileRepository {
@@ -69,7 +70,7 @@ class ProfileRepository {
 
       final profileResult = await _client
           .from('profiles')
-          .select('full_name, role, mess_id, created_at')
+          .select('full_name, role, mess_id, created_at, avatar_url')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -107,10 +108,39 @@ class ProfileRepository {
         'mess_id': profileResult['mess_id'],
         'created_at': profileResult['created_at'],
         'served_meals': servedMeals,
+        'avatar_url': profileResult['avatar_url'],
       };
     } catch (e) {
       return null;
     }
+  }
+
+  Future<String> uploadAvatar(File file) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('User is not authenticated.');
+    }
+
+    final path = '${user.id}/avatar.jpg';
+
+    // Upload to 'avatars' bucket, overwriting if exists
+    await _client.storage.from('avatars').upload(
+      path,
+      file,
+      fileOptions: const FileOptions(upsert: true),
+    );
+
+    // Get public URL and append timestamp to bypass cache
+    final publicUrl = _client.storage.from('avatars').getPublicUrl(path);
+    final urlWithTimestamp = '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+
+    // Update profiles table
+    await _client
+        .from('profiles')
+        .update({'avatar_url': urlWithTimestamp})
+        .eq('id', user.id);
+
+    return urlWithTimestamp;
   }
 
   /// Updates the user's full name

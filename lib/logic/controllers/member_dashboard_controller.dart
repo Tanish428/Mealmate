@@ -20,6 +20,8 @@ class MemberDashboardController extends ChangeNotifier {
   bool _isActionLoading = false;
   String? _errorMessage;
 
+  String? _avatarUrl;
+
   List<Map<String, dynamic>> _todayMenu = [];
   List<Map<String, dynamic>> _tomorrowMenu = [];
   List<Map<String, dynamic>> _announcements = [];
@@ -60,6 +62,9 @@ class MemberDashboardController extends ChangeNotifier {
     
     return _memberName;
   }
+  
+  String? get avatarUrl => _avatarUrl;
+
   String get selectedMeal => _selectedMeal;
   bool get isActiveTab => _isActiveTab;
   bool get isLoading => _isLoading;
@@ -109,19 +114,23 @@ class MemberDashboardController extends ChangeNotifier {
       final now = DateTime.now();
       final tomorrow = now.add(const Duration(days: 1));
       
-      final nameFuture = _profileRepo.getUserFullName();
+      final profileFuture = _profileRepo.getMemberProfileDetails();
       final todayMenuFuture = _menuRepo.getMenuForDate(now);
       final tomorrowMenuFuture = _menuRepo.getMenuForDate(tomorrow);
       final announcementsFuture = _broadcastRepo.getMessBroadcasts();
 
       final results = await Future.wait([
-        nameFuture,
+        profileFuture,
         todayMenuFuture,
         tomorrowMenuFuture,
         announcementsFuture,
       ]);
 
-      _memberName = results[0] as String?;
+      final profile = results[0] as Map<String, dynamic>?;
+      if (profile != null) {
+        _memberName = profile['full_name'] as String?;
+        _avatarUrl = profile['avatar_url'] as String?;
+      }
       _todayMenu = results[1] as List<Map<String, dynamic>>? ?? [];
       _tomorrowMenu = results[2] as List<Map<String, dynamic>>? ?? [];
       _announcements = results[3] as List<Map<String, dynamic>>? ?? [];
