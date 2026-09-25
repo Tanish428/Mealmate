@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/routing/app_router.dart';
+import 'member_home_screen.dart';
 
 class MemberMainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -15,6 +16,8 @@ class MemberMainShell extends StatelessWidget {
       if (memberHomeNavigatorKey.currentState?.canPop() == true) {
         memberHomeNavigatorKey.currentState!.popUntil((route) => route.isFirst);
       }
+      // Force a reload of the home screen data when returning to it
+      memberHomeScreenKey.currentState?.reload();
       navigationShell.goBranch(0, initialLocation: true);
       return;
     }

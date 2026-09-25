@@ -14,6 +14,7 @@ class MenuViewScreen extends StatefulWidget {
 class _MenuViewScreenState extends State<MenuViewScreen> {
   late DateTime _selectedDate;
   String _selectedFilter = 'All';
+  String? _messName;
   bool _isLoading = false;
   List<Map<String, dynamic>> _currentMenuData = [];
   final List<DateTime> _weekDates = [];
@@ -41,10 +42,13 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
   Future<void> _fetchServedMeals() async {
     try {
       final profile = await ProfileRepository().getMemberProfileDetails();
-      if (profile != null && profile['served_meals'] != null) {
+      if (profile != null) {
         if (mounted) {
           setState(() {
-            _servedMeals = List<String>.from(profile['served_meals']);
+            if (profile['served_meals'] != null) {
+              _servedMeals = List<String>.from(profile['served_meals']);
+            }
+            _messName = profile['mess_name'] as String?;
           });
         }
       }
@@ -214,45 +218,13 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Weekly Menu',
-              style: TextStyle(
-                color: textDark,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10.0,
-                vertical: 6.0,
-              ),
-              decoration: BoxDecoration(
-                color: primaryRed.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.storefront, size: 14, color: primaryRed),
-                  const SizedBox(width: 4.0),
-                  Text(
-                    'Campus Central Mess',
-                    style: TextStyle(
-                      color: primaryRed,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 4.0),
-                  Icon(Icons.keyboard_arrow_down, size: 16, color: primaryRed),
-                ],
-              ),
-            ),
-          ],
+        Text(
+          'Weekly Menu',
+          style: TextStyle(
+            color: textDark,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 4.0),
         Text(

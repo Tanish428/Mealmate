@@ -188,7 +188,7 @@ class MessRepository {
         try {
           final List<dynamic> byMessId = await _client
               .from('profiles')
-              .select('id, full_name, role, mess_id')
+              .select('id, full_name, role, mess_id, avatar_url')
               .filter('mess_id', 'in', '(${ownerMessIds.join(",")})');
 
           for (final raw in byMessId) {
@@ -209,7 +209,7 @@ class MessRepository {
         try {
           final List<dynamic> allProfiles = await _client
               .from('profiles')
-              .select('id, full_name, role, mess_id')
+              .select('id, full_name, role, mess_id, avatar_url')
               .neq('id', userId);
 
           for (final raw in allProfiles) {

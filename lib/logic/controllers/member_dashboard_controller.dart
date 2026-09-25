@@ -14,6 +14,7 @@ class MemberDashboardController extends ChangeNotifier {
   final AttendanceRepo _attendanceRepo;
 
   String? _memberName;
+  String? _messName;
   String _selectedMeal = 'Lunch';
   bool _isActiveTab = true;
   bool _isLoading = false;
@@ -29,6 +30,8 @@ class MemberDashboardController extends ChangeNotifier {
   List<SkipModel> _allSkips = [];
   List<String> _servedMeals = [];
   double _attendancePercentage = 0.0;
+  int _totalMeals = 0;
+  int _attendedMeals = 0;
   String? _messId;
   DateTime? _profileCreatedAt;
 
@@ -48,6 +51,7 @@ class MemberDashboardController extends ChangeNotifier {
     }
   }
 
+  String? get messName => _messName;
   String? get memberName {
     if (_memberName != null && _memberName!.trim().isNotEmpty) return _memberName;
     
@@ -72,6 +76,8 @@ class MemberDashboardController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<Map<String, dynamic>> get announcements => _announcements;
   double get attendancePercentage => _attendancePercentage;
+  int get totalMeals => _totalMeals;
+  int get attendedMeals => _attendedMeals;
   List<String> get servedMeals => _servedMeals;
   
   bool isCutoffPassed(DateTime date, String mealType) {
@@ -130,6 +136,7 @@ class MemberDashboardController extends ChangeNotifier {
       if (profile != null) {
         _memberName = profile['full_name'] as String?;
         _avatarUrl = profile['avatar_url'] as String?;
+        _messName = profile['mess_name'] as String?;
       }
       _todayMenu = results[1] as List<Map<String, dynamic>>? ?? [];
       _tomorrowMenu = results[2] as List<Map<String, dynamic>>? ?? [];
@@ -165,7 +172,7 @@ class MemberDashboardController extends ChangeNotifier {
       final today = DateTime(now.year, now.month, now.day);
       
       final int mealsPerDay = _servedMeals.isNotEmpty ? _servedMeals.length : 1;
-      final int totalPossibleMeals = ((now.difference(_profileCreatedAt!).inDays) + 1) * mealsPerDay;
+      _totalMeals = ((now.difference(_profileCreatedAt!).inDays) + 1) * mealsPerDay;
 
       final totalPastSkips = _allSkips.where((skip) {
         final skipDay = DateTime(skip.skipDate.year, skip.skipDate.month, skip.skipDate.day);
@@ -176,12 +183,12 @@ class MemberDashboardController extends ChangeNotifier {
         return false;
       }).length;
 
-      _attendancePercentage = totalPossibleMeals > 0 
-          ? ((totalPossibleMeals - totalPastSkips) / totalPossibleMeals) * 100 
+      _attendedMeals = _totalMeals - totalPastSkips;
+      if (_attendedMeals < 0) _attendedMeals = 0;
+
+      _attendancePercentage = _totalMeals > 0 
+          ? ((_attendedMeals / _totalMeals) * 100).clamp(0.0, 100.0) 
           : 100.0;
-      
-      if (_attendancePercentage < 0) _attendancePercentage = 0.0;
-      if (_attendancePercentage > 100) _attendancePercentage = 100.0;
 
     } catch (e) {
       _errorMessage = 'Failed to load attendance: $e';

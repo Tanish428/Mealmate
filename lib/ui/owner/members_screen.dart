@@ -262,23 +262,30 @@ class _MemberListTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: member.avatarBgColor,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              member.initials,
-              style: TextStyle(
-                color: member.avatarTextColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
+          (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
+              ? CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.grey.shade200,
+                  backgroundImage: NetworkImage(member.avatarUrl!),
+                  onBackgroundImageError: (_, __) {},
+                )
+              : Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: member.avatarBgColor,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    member.initials,
+                    style: TextStyle(
+                      color: member.avatarTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
           const SizedBox(width: 16.0),
           Expanded(
             child: Text(

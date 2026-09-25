@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../logic/controllers/feedback_form_controller.dart';
 import '../common/custom_textfield.dart';
 import '../common/custom_button.dart';
+import '../../data/repos/profile_repo.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -18,16 +19,35 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   final TextEditingController _commentController = TextEditingController();
   final FeedbackFormController _feedbackController = FeedbackFormController();
 
-  final List<String> _meals = ['Breakfast', 'Lunch', 'Dinner'];
+  List<String> _meals = ['Breakfast', 'Lunch', 'Dinner'];
 
   @override
   void initState() {
     super.initState();
+    _fetchServedMeals();
     _commentController.addListener(() {
       setState(() {
         _commentLength = _commentController.text.length;
       });
     });
+  }
+
+  Future<void> _fetchServedMeals() async {
+    try {
+      final profile = await ProfileRepository().getMemberProfileDetails();
+      if (profile != null && profile['served_meals'] != null) {
+        if (mounted) {
+          setState(() {
+            _meals = (profile['served_meals'] as List<dynamic>)
+                .map((e) => e.toString().substring(0, 1).toUpperCase() + e.toString().substring(1).toLowerCase())
+                .toList();
+            if (!_meals.contains(_selectedMeal) && _meals.isNotEmpty) {
+              _selectedMeal = _meals.first;
+            }
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   @override

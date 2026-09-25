@@ -102,7 +102,7 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
         cutoffHour = 10.0;
         break;
       case 'dinner':
-        cutoffHour = 17.0;
+        cutoffHour = 19.0;
         break;
       default:
         cutoffHour = 0.0;
@@ -150,8 +150,8 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 16.0),
-                  _buildEcoBanner(),
+                  const SizedBox(height: 24.0),
+                  _buildProgressBar(),
                   const SizedBox(height: 24.0),
                   
                   if (showTodaySection) ...[
@@ -251,39 +251,68 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     );
   }
 
-  Widget _buildEcoBanner() {
+  Widget _buildProgressBar() {
+    final double percentage = _controller.attendancePercentage;
+    final double progressValue = (percentage / 100.0).clamp(0.0, 1.0);
+    final Color vibrantGreen = const Color(0xFF34A853);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
       decoration: BoxDecoration(
-        color: lightGreen,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.energy_savings_leaf, color: green, size: 20),
-          const SizedBox(width: 12.0),
-          Expanded(
-            child: Text(
-              'Your updates help reduce food waste. Thank you!',
-              style: TextStyle(
-                color: green,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+          Text(
+            'Overall Attendance',
+            style: TextStyle(
+              color: textDark,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: green.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.eco, color: green.withOpacity(0.5), size: 24),
+          const SizedBox(height: 12.0),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 8.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10.0),
+                    child: LinearProgressIndicator(
+                      value: progressValue,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(vibrantGreen),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12.0),
+              Text(
+                '${percentage.toStringAsFixed(2)}%',
+                style: TextStyle(
+                  color: vibrantGreen,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+
 
   Widget _buildSectionHeader(String title, String dateText) {
     return Row(

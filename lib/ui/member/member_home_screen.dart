@@ -6,6 +6,8 @@ import 'notice_board_screen.dart';
 import '../../data/repos/menu_repo.dart';
 import '../../logic/controllers/member_dashboard_controller.dart';
 
+final GlobalKey<MemberHomeScreenState> memberHomeScreenKey = GlobalKey<MemberHomeScreenState>();
+
 class MemberHomeScreen extends StatefulWidget {
   final VoidCallback? onNavigateToMenu;
   final VoidCallback? onNavigateToAttendance;
@@ -19,13 +21,17 @@ class MemberHomeScreen extends StatefulWidget {
   });
 
   @override
-  State<MemberHomeScreen> createState() => _MemberHomeScreenState();
+  State<MemberHomeScreen> createState() => MemberHomeScreenState();
 }
 
-class _MemberHomeScreenState extends State<MemberHomeScreen> {
+class MemberHomeScreenState extends State<MemberHomeScreen> {
   String _selectedMeal = 'Lunch';
   late final MemberDashboardController _dashboardController;
   Future<List<Map<String, dynamic>>>? _todayMenuFuture;
+
+  Future<void> reload() async {
+    await _dashboardController.loadDashboard();
+  }
 
   @override
   void initState() {
@@ -102,39 +108,44 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(primaryRed, textDark, textGray),
-              const SizedBox(height: 24.0),
-              FutureBuilder<List<Map<String, dynamic>>>(
-                future: _todayMenuFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading menu'));
-                  }
-                  if (!_dashboardController.isLoading && _dashboardController.servedMeals.isEmpty) {
-                    return const Center(child: Text('No meals currently configured.'));
-                  }
-                  return _buildHeroCard(primaryRed, textDark, textGray, snapshot.data ?? []);
-                },
-              ),
-              const SizedBox(height: 24.0),
-              _buildTodayMealsSection(primaryRed, textDark, textGray),
-              const SizedBox(height: 24.0),
-              _buildQuickAccessSection(primaryRed, textDark),
-              const SizedBox(height: 24.0),
-            ],
+        child: RefreshIndicator(
+          onRefresh: reload,
+          color: primaryRed,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(primaryRed, textDark, textGray),
+                const SizedBox(height: 24.0),
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _todayMenuFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return const Center(child: Text('Error loading menu'));
+                    }
+                    if (!_dashboardController.isLoading && _dashboardController.servedMeals.isEmpty) {
+                      return const Center(child: Text('No meals currently configured.'));
+                    }
+                    return _buildHeroCard(primaryRed, textDark, textGray, snapshot.data ?? []);
+                  },
+                ),
+                const SizedBox(height: 24.0),
+                _buildTodayMealsSection(primaryRed, textDark, textGray),
+                const SizedBox(height: 24.0),
+                _buildQuickAccessSection(primaryRed, textDark),
+                const SizedBox(height: 24.0),
+              ],
+            ),
           ),
         ),
       ),
@@ -200,7 +211,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good afternoon,',
+                'Hey,',
                 style: TextStyle(
                   color: textGray,
                   fontSize: 14,
@@ -256,7 +267,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
                       const SizedBox(width: 4.0),
                       Flexible(
                         child: Text(
-                          'Campus Central Mess',
+                          _dashboardController.messName ?? 'Campus Central Mess',
                           style: TextStyle(
                             color: primaryRed,
                             fontSize: 12,

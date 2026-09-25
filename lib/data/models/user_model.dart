@@ -9,6 +9,7 @@ class UserModel {
   final String? messId;
   final List<String> messIds;
   final DateTime? createdAt;
+  final String? avatarUrl;
   final Color? customAvatarBgColor;
   final Color? customAvatarTextColor;
 
@@ -21,6 +22,7 @@ class UserModel {
     this.messId,
     this.messIds = const [],
     this.createdAt,
+    this.avatarUrl,
     this.customAvatarBgColor,
     this.customAvatarTextColor,
   });
@@ -66,6 +68,7 @@ class UserModel {
     String? messId,
     List<String>? messIds,
     DateTime? createdAt,
+    String? avatarUrl,
     Color? customAvatarBgColor,
     Color? customAvatarTextColor,
     String? userId,
@@ -80,6 +83,7 @@ class UserModel {
       messId: messId ?? this.messId,
       messIds: messIds ?? this.messIds,
       createdAt: createdAt ?? this.createdAt,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       customAvatarBgColor: customAvatarBgColor ?? this.customAvatarBgColor,
       customAvatarTextColor: customAvatarTextColor ?? this.customAvatarTextColor,
     );
@@ -95,6 +99,7 @@ class UserModel {
       if (messId != null) 'mess_id': messId,
       'messIds': messIds,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
       // Legacy compatibility keys
       'userId': id,
       'name': fullName,
@@ -139,6 +144,7 @@ class UserModel {
       messId: messId,
       messIds: messList,
       createdAt: parsedCreatedAt,
+      avatarUrl: map['avatar_url']?.toString(),
       customAvatarBgColor: colorPair.$1,
       customAvatarTextColor: colorPair.$2,
     );

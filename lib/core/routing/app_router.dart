@@ -117,7 +117,7 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/member/home',
-              builder: (context, state) => MemberHomeScreen(
+              builder: (context, state) => MemberHomeScreen(key: memberHomeScreenKey,
                 onNavigateToMenu: () => context.go('/member/menu'),
                 onNavigateToAttendance: () => context.go('/member/attendance'),
                 onNavigateToProfile: () => context.go('/member/profile'),

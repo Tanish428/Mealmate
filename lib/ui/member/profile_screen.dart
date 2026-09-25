@@ -4,6 +4,7 @@ import '../../data/services/supabase_auth_service.dart';
 import 'edit_profile_screen.dart';
 
 import '../../data/repos/profile_repo.dart';
+import '../../logic/controllers/member_dashboard_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,11 +21,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _role = 'Loading...';
   String _messName = 'Loading...';
   String? _avatarUrl;
+  late final MemberDashboardController _dashboardController;
 
   @override
   void initState() {
     super.initState();
+    _dashboardController = MemberDashboardController(autoLoad: true);
     _loadProfileData();
+  }
+
+  @override
+  void dispose() {
+    _dashboardController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfileData() async {
@@ -88,10 +97,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // 4. MealMate Summary Section
               _buildSummarySection(),
-              const SizedBox(height: 24.0),
-
-              // 5. Eco Banner
-              _buildEcoBanner(),
               const SizedBox(height: 24.0),
 
               // 6. Actions (Buttons)
@@ -328,7 +333,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
 
   Widget _buildSummarySection() {
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -343,31 +347,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Row(
-              children: [
-                Icon(Icons.eco, color: green, size: 16),
-                const SizedBox(width: 4.0),
-                Text(
-                  'Eco-Warrior',
-                  style: TextStyle(
-                    color: green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
         const SizedBox(height: 16.0),
-        Row(
-          children: [
-            Expanded(child: _buildStatCard('Meals Attended', '42', Icons.restaurant_menu, primaryRed, lightRed)),
-            const SizedBox(width: 12.0),
-            Expanded(child: _buildStatCard('Day Streak', '14', Icons.local_fire_department, orange, lightOrange)),
-            const SizedBox(width: 12.0),
-            Expanded(child: _buildStatCard('Food Saved', '2.5kg', Icons.eco, green, lightGreen)),
-          ],
+        ListenableBuilder(
+          listenable: _dashboardController,
+          builder: (context, child) {
+            return Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Total Meals',
+                    '${_dashboardController.totalMeals}',
+                    Icons.calendar_month,
+                    Colors.blue,
+                    Colors.blue.shade50,
+                  ),
+                ),
+                const SizedBox(width: 12.0),
+                Expanded(
+                  child: _buildStatCard(
+                    'Attended',
+                    '${_dashboardController.attendedMeals}',
+                    Icons.check_circle_outline,
+                    green,
+                    lightGreen,
+                  ),
+                ),
+                const SizedBox(width: 12.0),
+                Expanded(
+                  child: _buildStatCard(
+                    'Attendance Rate',
+                    '${_dashboardController.attendancePercentage.toStringAsFixed(1)}%',
+                    Icons.analytics_outlined,
+                    primaryRed,
+                    lightRed,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -400,40 +419,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: textGray,
               fontSize: 10,
               fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEcoBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: lightGreen,
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.eco, color: green, size: 16),
-          ),
-          const SizedBox(width: 12.0),
-          Expanded(
-            child: Text(
-              'Your food choices saved 2.5kg of food this month! Keep it up!',
-              style: TextStyle(
-                color: green,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
             ),
           ),
         ],
