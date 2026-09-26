@@ -30,12 +30,24 @@ class MessRepository {
 
       final inviteCode = _generateInviteCode();
 
+      final Map<String, dynamic> initialMealTimings = {};
+      if (servedMeals.contains('breakfast')) {
+        initialMealTimings['breakfast'] = {"start": "07:30", "end": "09:30", "cutoff": "07:00"};
+      }
+      if (servedMeals.contains('lunch')) {
+        initialMealTimings['lunch'] = {"start": "12:30", "end": "14:30", "cutoff": "10:00"};
+      }
+      if (servedMeals.contains('dinner')) {
+        initialMealTimings['dinner'] = {"start": "19:30", "end": "21:30", "cutoff": "19:00"};
+      }
+
       // Insert mess and select the newly generated UUID
       final response = await _client.from('messes').insert({
         'owner_id': userId,
         'mess_name': messName,
         'invite_code': inviteCode,
         'served_meals': servedMeals,
+        'meal_timings': initialMealTimings,
       }).select('id').single();
 
       final newlyCreatedMessId = response['id'];

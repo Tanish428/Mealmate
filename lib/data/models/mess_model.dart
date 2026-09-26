@@ -7,6 +7,7 @@ class MessModel {
   final bool billingEnabled;
   final double? perDayRate;
   final List<String> servedMeals;
+  final Map<String, dynamic>? mealTimings;
 
   const MessModel({
     required this.id,
@@ -17,6 +18,7 @@ class MessModel {
     this.billingEnabled = false,
     this.perDayRate,
     this.servedMeals = const [],
+    this.mealTimings,
   });
 
   // Backward compatibility getters
@@ -33,6 +35,7 @@ class MessModel {
     bool? billingEnabled,
     double? perDayRate,
     List<String>? servedMeals,
+    Map<String, dynamic>? mealTimings,
     String? messId,
     String? name,
     String? createdBy,
@@ -46,6 +49,7 @@ class MessModel {
       billingEnabled: billingEnabled ?? this.billingEnabled,
       perDayRate: perDayRate ?? this.perDayRate,
       servedMeals: servedMeals ?? this.servedMeals,
+      mealTimings: mealTimings ?? this.mealTimings,
     );
   }
 
@@ -59,6 +63,7 @@ class MessModel {
       'billing_enabled': billingEnabled,
       if (perDayRate != null) 'per_day_rate': perDayRate,
       'served_meals': servedMeals,
+      if (mealTimings != null) 'meal_timings': mealTimings,
       // Legacy compatibility keys
       'messId': id,
       'name': messName,
@@ -96,6 +101,7 @@ class MessModel {
       billingEnabled: (map['billing_enabled'] ?? map['billingEnabled'] ?? false) == true,
       perDayRate: parsedRate,
       servedMeals: List<String>.from(map['served_meals'] ?? const []),
+      mealTimings: map['meal_timings'] != null ? Map<String, dynamic>.from(map['meal_timings']) : null,
     );
   }
 }

@@ -8,6 +8,7 @@ import '../common/custom_button.dart';
 import '../../data/services/supabase_auth_service.dart';
 import '../../data/repos/mess_repo.dart';
 import '../../data/repos/profile_repo.dart';
+import '../../data/models/mess_model.dart';
 
 class MessProfileScreen extends StatefulWidget {
   const MessProfileScreen({super.key});
@@ -23,6 +24,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   File? _avatarFile;
   String? _avatarUrl;
   bool _isUploading = false;
+  Map<String, dynamic>? _messData;
   
 
   @override
@@ -47,6 +49,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     if (mounted) {
       setState(() {
         if (data != null) {
+          _messData = data;
           _nameController.text = data['mess_name'] ?? 'Your Mess';
           _inviteCode = data['invite_code'] ?? 'N/A';
         } else {
@@ -129,6 +132,8 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
               const SizedBox(height: 32.0),
               _buildMessDetailsCard(colorScheme, textTheme),
               const SizedBox(height: 24.0),
+              _buildSettingsTile(colorScheme, textTheme),
+              const SizedBox(height: 24.0),
               _buildInviteSection(colorScheme, textTheme),
               const SizedBox(height: 32.0),
               _buildLogOutButton(colorScheme),
@@ -136,6 +141,51 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(ColorScheme colorScheme, TextTheme textTheme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+        leading: Icon(Icons.access_time_rounded, color: colorScheme.primary, size: 28),
+        title: Text(
+          'Meal Timings & Cutoffs',
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        subtitle: Text(
+          'Manage serving windows and opt-out cutoffs',
+          style: textTheme.bodySmall?.copyWith(
+            color: Colors.grey.shade600,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () async {
+          if (_messData != null) {
+            final messModel = MessModel.fromMap(_messData!);
+            final updatedTimings = await context.push<Map<String, dynamic>>('/owner/meal-timings', extra: messModel);
+            if (updatedTimings != null) {
+              setState(() {
+                _messData!['meal_timings'] = updatedTimings;
+              });
+            }
+          }
+        },
       ),
     );
   }
