@@ -127,13 +127,37 @@ class MessRepository {
 
       final result = await _client
           .from('messes')
-          .select('id, mess_name, invite_code, served_meals')
+          .select('id, mess_name, invite_code, served_meals, meal_timings')
           .eq('owner_id', userId)
           .maybeSingle();
 
       return result;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Updates the meal timings for a specific mess by its primary key.
+  /// Uses the mess `id` (primary key) for a precise single-row update.
+  /// RLS policies on the `messes` table handle ownership authorization.
+  Future<void> updateMealTimings({
+    required String messId,
+    required Map<String, dynamic> mealTimings,
+  }) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User is not authenticated.');
+      }
+
+      await _client
+          .from('messes')
+          .update({'meal_timings': mealTimings})
+          .eq('id', messId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update meal timings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update meal timings: $e');
     }
   }
 

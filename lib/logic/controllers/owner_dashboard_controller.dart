@@ -49,6 +49,7 @@ class OwnerDashboardController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   OwnerDashboardStats? _stats;
+  Map<String, dynamic> _mealTimings = {};
 
   OwnerDashboardController({
     MessRepository? messRepo,
@@ -105,6 +106,7 @@ class OwnerDashboardController extends ChangeNotifier {
       }
 
       final mealTimings = messDetails?['meal_timings'] as Map<String, dynamic>? ?? {};
+      _mealTimings = mealTimings;
       
       final members = results[1] as List<Map<String, dynamic>>? ?? [];
       final feedbacks = results[2] as List<Map<String, dynamic>>? ?? [];
@@ -194,21 +196,15 @@ class OwnerDashboardController extends ChangeNotifier {
         final parts = data['end'].split(':');
         return int.parse(parts[0]) + int.parse(parts[1]) / 60.0;
       }
-      if (m == 'breakfast') return 10.0;
-      if (m == 'lunch') return 15.0;
-      if (m == 'dinner') return 22.0;
-      return 24.0;
+      return 0.0; // If not configured, force skip
     }
 
     String getFormattedTime(String m) {
       final data = mealTimings[m];
       if (data != null && data['start'] != null && data['end'] != null) {
-        return '${_formatTime12Hour(data['start'])} - ${_formatTime12Hour(data['end'])}';
+        return '${formatTime12Hour(data['start'])} - ${formatTime12Hour(data['end'])}';
       }
-      if (m == 'breakfast') return '7:30 AM - 9:30 AM';
-      if (m == 'lunch') return '12:30 PM - 2:30 PM';
-      if (m == 'dinner') return '7:30 PM - 9:30 PM';
-      return '';
+      return 'Not Configured';
     }
 
     if (servedMeals.contains('breakfast') && time < getEndTime('breakfast')) {
@@ -243,7 +239,16 @@ class OwnerDashboardController extends ChangeNotifier {
     return (mealKey, mealTitle, mealTime, items, isTomorrow);
   }
 
-  String _formatTime12Hour(String time) {
+  String getFormattedMealTime(String mealType) {
+    final lowerMeal = mealType.toLowerCase();
+    final data = _mealTimings[lowerMeal];
+    if (data != null && data['start'] != null && data['end'] != null) {
+      return '${formatTime12Hour(data['start'])} - ${formatTime12Hour(data['end'])}';
+    }
+    return 'Not Configured';
+  }
+
+  String formatTime12Hour(String time) {
     try {
       final parts = time.split(':');
       final h = int.parse(parts[0]);

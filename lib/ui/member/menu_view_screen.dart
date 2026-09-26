@@ -39,6 +39,8 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
     _fetchServedMeals();
   }
 
+  Map<String, dynamic> _mealTimings = {};
+
   Future<void> _fetchServedMeals() async {
     try {
       final profile = await ProfileRepository().getMemberProfileDetails();
@@ -49,10 +51,32 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
               _servedMeals = List<String>.from(profile['served_meals']);
             }
             _messName = profile['mess_name'] as String?;
+            _mealTimings = profile['meal_timings'] as Map<String, dynamic>? ?? {};
           });
         }
       }
     } catch (_) {}
+  }
+
+  String _getFormattedMealTime(String mealType) {
+    final lowerMeal = mealType.toLowerCase();
+    final data = _mealTimings[lowerMeal];
+    if (data != null && data['start'] != null && data['end'] != null) {
+      return '${_formatTime12Hour(data['start'])} - ${_formatTime12Hour(data['end'])}';
+    }
+    return 'Not Configured';
+  }
+
+  String _formatTime12Hour(String time) {
+    try {
+      final parts = time.split(':');
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final dt = DateTime(2020, 1, 1, h, m);
+      return "${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
+    } catch (_) {
+      return time;
+    }
   }
 
   Future<void> _fetchMenuForDate(DateTime date) async {
@@ -132,7 +156,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                 if (_servedMeals.map((e) => e.toLowerCase()).contains('breakfast')) ...[
                   _buildMealCard(
                     'Breakfast',
-                    '7:30 AM – 9:30 AM',
+                    _getFormattedMealTime('breakfast'),
                     Icons.wb_sunny_outlined,
                     Colors.orange,
                     _getMealItems('breakfast'),
@@ -142,7 +166,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                 if (_servedMeals.map((e) => e.toLowerCase()).contains('lunch')) ...[
                   _buildMealCard(
                     'Lunch',
-                    '12:30 PM – 2:30 PM',
+                    _getFormattedMealTime('lunch'),
                     Icons.restaurant,
                     primaryRed,
                     _getMealItems('lunch'),
@@ -152,7 +176,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                 if (_servedMeals.map((e) => e.toLowerCase()).contains('dinner')) ...[
                   _buildMealCard(
                     'Dinner',
-                    '7:30 PM – 9:30 PM',
+                    _getFormattedMealTime('dinner'),
                     Icons.nightlight_round,
                     Colors.grey.shade700,
                     _getMealItems('dinner'),

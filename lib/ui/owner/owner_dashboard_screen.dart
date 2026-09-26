@@ -276,7 +276,7 @@ class _NextMealCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 5.0),
                     Text(
-                      mealTime ?? "7:30 AM - 9:30 AM",
+                      mealTime ?? "",
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

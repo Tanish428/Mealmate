@@ -62,24 +62,6 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     }
   }
 
-  bool _isMealPeriodEnded(String mealType) {
-    final now = DateTime.now();
-    final hour = now.hour;
-    final minute = now.minute;
-    final time = hour + minute / 60.0;
-    
-    switch (mealType.toLowerCase()) {
-      case 'breakfast':
-        return time >= 9.5; // 9:30 AM
-      case 'lunch':
-        return time >= 14.5; // 2:30 PM
-      case 'dinner':
-        return time >= 21.5; // 9:30 PM
-      default:
-        return true;
-    }
-  }
-
   String _getCutoffBadgeText(DateTime date, String mealType, bool isCutoffPassed) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -89,33 +71,18 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
       return 'Opens Tomorrow';
     }
 
-    if (isCutoffPassed) {
-      return 'Cutoff Passed';
+    final cutoffTime = _controller.getCutoffDateTime(date, mealType);
+    if (cutoffTime == null) {
+      return isCutoffPassed ? 'Cutoff Passed' : 'Opt-out open';
     }
 
-    double cutoffHour;
-    switch (mealType.toLowerCase()) {
-      case 'breakfast':
-        cutoffHour = 7.0;
-        break;
-      case 'lunch':
-        cutoffHour = 10.0;
-        break;
-      case 'dinner':
-        cutoffHour = 19.0;
-        break;
-      default:
-        cutoffHour = 0.0;
-    }
-
-    final cutoffTime = DateTime(now.year, now.month, now.day, cutoffHour.toInt(), 0);
-    final diff = cutoffTime.difference(now);
+    final formattedCutoff = DateFormat('h:mm a').format(cutoffTime);
     
-    if (diff.isNegative) return 'Cutoff Passed';
+    if (isCutoffPassed || now.isAfter(cutoffTime) || now.isAtSameMomentAs(cutoffTime)) {
+      return 'Cutoff passed at $formattedCutoff';
+    }
 
-    final h = diff.inHours;
-    final m = diff.inMinutes.remainder(60);
-    return 'Locks in ${h}h ${m}m';
+    return 'Opt-out closes at $formattedCutoff';
   }
 
   @override
@@ -158,15 +125,15 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
                     _buildSectionHeader('Today', DateFormat('EEE, d MMM yyyy').format(today)),
                     const SizedBox(height: 16.0),
                     if (showTodayBreakfast) ...[
-                      _buildMealCard(today, 'Breakfast', '7:30 AM - 9:30 AM', Icons.wb_sunny_outlined, Colors.orange),
+                      _buildMealCard(today, 'Breakfast', _controller.getFormattedMealTime('breakfast'), Icons.wb_sunny_outlined, Colors.orange),
                       const SizedBox(height: 16.0),
                     ],
                     if (showTodayLunch) ...[
-                      _buildMealCard(today, 'Lunch', '12:30 PM - 2:30 PM', Icons.restaurant, primaryRed),
+                      _buildMealCard(today, 'Lunch', _controller.getFormattedMealTime('lunch'), Icons.restaurant, primaryRed),
                       const SizedBox(height: 16.0),
                     ],
                     if (showTodayDinner) ...[
-                      _buildMealCard(today, 'Dinner', '7:30 PM - 9:30 PM', Icons.nightlight_round, Colors.indigo),
+                      _buildMealCard(today, 'Dinner', _controller.getFormattedMealTime('dinner'), Icons.nightlight_round, Colors.indigo),
                       const SizedBox(height: 16.0),
                     ],
                     const SizedBox(height: 8.0),
@@ -175,15 +142,15 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
                   _buildSectionHeader('Tomorrow', DateFormat('EEE, d MMM yyyy').format(tomorrow)),
                   const SizedBox(height: 16.0),
                   if (servedMeals.contains('breakfast')) ...[
-                    _buildMealCard(tomorrow, 'Breakfast', '7:30 AM - 9:30 AM', Icons.wb_sunny_outlined, Colors.orange),
+                    _buildMealCard(tomorrow, 'Breakfast', _controller.getFormattedMealTime('breakfast'), Icons.wb_sunny_outlined, Colors.orange),
                     const SizedBox(height: 16.0),
                   ],
                   if (servedMeals.contains('lunch')) ...[
-                    _buildMealCard(tomorrow, 'Lunch', '12:30 PM - 2:30 PM', Icons.restaurant, primaryRed),
+                    _buildMealCard(tomorrow, 'Lunch', _controller.getFormattedMealTime('lunch'), Icons.restaurant, primaryRed),
                     const SizedBox(height: 16.0),
                   ],
                   if (servedMeals.contains('dinner')) ...[
-                    _buildMealCard(tomorrow, 'Dinner', '7:30 PM - 9:30 PM', Icons.nightlight_round, Colors.indigo),
+                    _buildMealCard(tomorrow, 'Dinner', _controller.getFormattedMealTime('dinner'), Icons.nightlight_round, Colors.indigo),
                     const SizedBox(height: 24.0),
                   ],
                 ],

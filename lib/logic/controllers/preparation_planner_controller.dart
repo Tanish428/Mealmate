@@ -62,9 +62,9 @@ class PreparationPlannerController extends ChangeNotifier {
     if (data != null && data['start'] != null && data['end'] != null) {
       return '${_formatTime12Hour(data['start'])} - ${_formatTime12Hour(data['end'])}';
     }
-    if (_selectedMeal == 'breakfast') return '7:30 AM - 9:30 AM';
-    if (_selectedMeal == 'lunch') return '12:30 PM - 2:30 PM';
-    if (_selectedMeal == 'dinner') return '7:30 PM - 9:30 PM';
+    
+    
+    
     return '';
   }
 
@@ -77,9 +77,6 @@ class PreparationPlannerController extends ChangeNotifier {
       final readyBy = dt.subtract(const Duration(minutes: 15));
       return "${readyBy.hour > 12 ? readyBy.hour - 12 : (readyBy.hour == 0 ? 12 : readyBy.hour)}:${readyBy.minute.toString().padLeft(2, '0')} ${readyBy.hour >= 12 ? 'PM' : 'AM'}";
     }
-    if (_selectedMeal == 'breakfast') return '7:15 AM';
-    if (_selectedMeal == 'lunch') return '12:15 PM';
-    if (_selectedMeal == 'dinner') return '7:15 PM';
     return '';
   }
   
@@ -106,9 +103,7 @@ class PreparationPlannerController extends ChangeNotifier {
       cutoffHour = int.parse(parts[0]);
       cutoffMinute = int.parse(parts[1]);
     } else {
-      if (_selectedMeal == 'breakfast') cutoffHour = 7;
-      else if (_selectedMeal == 'lunch') cutoffHour = 10;
-      else if (_selectedMeal == 'dinner') cutoffHour = 19;
+      return null;
     }
     
     return DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, cutoffHour, cutoffMinute);
@@ -144,9 +139,6 @@ class PreparationPlannerController extends ChangeNotifier {
     if (data != null && data['cutoff'] != null) {
       return _formatTime12Hour(data['cutoff']);
     }
-    if (_selectedMeal == 'breakfast') return '07:00 AM';
-    if (_selectedMeal == 'lunch') return '10:00 AM';
-    if (_selectedMeal == 'dinner') return '07:00 PM';
     return '';
   }
 
@@ -217,11 +209,25 @@ _Generated via MealMate Owner App_
     if (_servedMeals.isEmpty) return;
     
     final now = DateTime.now();
-    if (now.hour < 10 && _servedMeals.contains('breakfast')) {
+    final time = now.hour + now.minute / 60.0;
+
+    double getEndTime(String m) {
+      final data = _mealTimings[m];
+      if (data != null && data['end'] != null) {
+        final parts = data['end'].split(':');
+        return int.parse(parts[0]) + int.parse(parts[1]) / 60.0;
+      }
+      if (m == 'breakfast') return 10.0;
+      if (m == 'lunch') return 15.0;
+      if (m == 'dinner') return 22.0;
+      return 24.0;
+    }
+
+    if (time < getEndTime('breakfast') && _servedMeals.contains('breakfast')) {
       _selectedMeal = 'breakfast';
-    } else if (now.hour < 15 && _servedMeals.contains('lunch')) {
+    } else if (time < getEndTime('lunch') && _servedMeals.contains('lunch')) {
       _selectedMeal = 'lunch';
-    } else if (now.hour < 22 && _servedMeals.contains('dinner')) {
+    } else if (time < getEndTime('dinner') && _servedMeals.contains('dinner')) {
       _selectedMeal = 'dinner';
     } else {
       _selectedDate = now.add(const Duration(days: 1));

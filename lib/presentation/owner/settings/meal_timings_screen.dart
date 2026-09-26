@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../data/models/mess_model.dart';
-import '../../../../data/repos/mess_repo.dart';
+import '../../../data/models/mess_model.dart';
+import '../../../data/repos/mess_repo.dart';
 import 'package:intl/intl.dart';
 
 class MealTimingsScreen extends StatefulWidget {
@@ -133,10 +132,11 @@ class _MealTimingsScreenState extends State<MealTimingsScreen> {
         };
       }
 
-      await Supabase.instance.client
-          .from('messes')
-          .update({'meal_timings': updatedTimings})
-          .eq('id', widget.currentMess.id);
+      final repo = MessRepository();
+      await repo.updateMealTimings(
+        messId: widget.currentMess.id,
+        mealTimings: updatedTimings,
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

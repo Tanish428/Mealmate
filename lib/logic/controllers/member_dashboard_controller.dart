@@ -99,23 +99,42 @@ class MemberDashboardController extends ChangeNotifier {
       cutoffHour = int.parse(parts[0]);
       cutoffMinute = int.parse(parts[1]);
     } else {
-      switch (lowerMeal) {
-        case 'breakfast':
-          cutoffHour = 7;
-          break;
-        case 'lunch':
-          cutoffHour = 10;
-          break;
-        case 'dinner':
-          cutoffHour = 19;
-          break;
-        default:
-          return false;
-      }
+      return false; // If not configured, never lock
     }
     
     final cutoffDate = DateTime(today.year, today.month, today.day, cutoffHour, cutoffMinute);
     return now.isAfter(cutoffDate) || now.isAtSameMomentAs(cutoffDate);
+  }
+
+  DateTime? getCutoffDateTime(DateTime date, String mealType) {
+    final lowerMeal = mealType.toLowerCase();
+    final data = _mealTimings[lowerMeal];
+    if (data != null && data['cutoff'] != null) {
+      final parts = data['cutoff'].split(':');
+      return DateTime(date.year, date.month, date.day, int.parse(parts[0]), int.parse(parts[1]));
+    }
+    return null;
+  }
+
+  String _formatTime12Hour(String time) {
+    try {
+      final parts = time.split(':');
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final dt = DateTime(2020, 1, 1, h, m);
+      return "${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
+    } catch (_) {
+      return time;
+    }
+  }
+
+  String getFormattedMealTime(String mealType) {
+    final lowerMeal = mealType.toLowerCase();
+    final data = _mealTimings[lowerMeal];
+    if (data != null && data['start'] != null && data['end'] != null) {
+      return '${_formatTime12Hour(data['start'])} - ${_formatTime12Hour(data['end'])}';
+    }
+    return 'Not Configured';
   }
 
   bool isMealSkipped(DateTime date, String mealType) {
@@ -306,5 +325,77 @@ class MemberDashboardController extends ChangeNotifier {
     }
 
     return items.isNotEmpty ? items : ['Menu to be announced'];
+  }
+
+  (String mealName, String timeString, String statusText, Color statusColor, IconData statusIcon, List<String> items) getCurrentOrNextMeal() {
+    if (_servedMeals.isEmpty) {
+      return ('No Meals', '', 'Not Configured', const Color(0xFF757575), Icons.cancel, []);
+    }
+
+    final now = DateTime.now();
+    final time = now.hour + now.minute / 60.0;
+    
+    String selectedMeal = '';
+    bool isTomorrow = false;
+
+    double getEndTime(String m) {
+      final data = _mealTimings[m];
+      if (data != null && data['end'] != null) {
+        final parts = data['end'].split(':');
+        return int.parse(parts[0]) + int.parse(parts[1]) / 60.0;
+      }
+      return 0.0;
+    }
+    
+    double getStartTime(String m) {
+      final data = _mealTimings[m];
+      if (data != null && data['start'] != null) {
+        final parts = data['start'].split(':');
+        return int.parse(parts[0]) + int.parse(parts[1]) / 60.0;
+      }
+      return 24.0; // If missing, force it to skip
+    }
+
+    if (_servedMeals.contains('breakfast') && time < getEndTime('breakfast')) {
+      selectedMeal = 'breakfast';
+    } else if (_servedMeals.contains('lunch') && time < getEndTime('lunch')) {
+      selectedMeal = 'lunch';
+    } else if (_servedMeals.contains('dinner') && time < getEndTime('dinner')) {
+      selectedMeal = 'dinner';
+    } else {
+      selectedMeal = _servedMeals.first;
+      isTomorrow = true;
+    }
+
+    final lowerMeal = selectedMeal.toLowerCase();
+    final timeString = getFormattedMealTime(lowerMeal);
+    
+    String title = selectedMeal[0].toUpperCase() + selectedMeal.substring(1);
+    if (isTomorrow) title += ' (Tomorrow)';
+    
+    final items = getMenuForMeal(
+      isTomorrow ? now.add(const Duration(days: 1)) : now,
+      lowerMeal,
+    );
+
+    // Determine status
+    String statusText = 'Upcoming';
+    Color statusColor = const Color(0xFFD68C45); // orange
+    IconData statusIcon = Icons.access_time;
+
+    final startTime = getStartTime(lowerMeal);
+    final endTime = getEndTime(lowerMeal);
+    
+    if (!isTomorrow && time >= startTime && time <= endTime) {
+      statusText = 'Serving Now';
+      statusColor = const Color(0xFFC74330); // red
+      statusIcon = Icons.restaurant;
+    } else if (isTomorrow || time < startTime) {
+      statusText = 'Upcoming';
+      statusColor = const Color(0xFFD68C45);
+      statusIcon = Icons.schedule;
+    }
+
+    return (title, timeString, statusText, statusColor, statusIcon, items);
   }
 }
