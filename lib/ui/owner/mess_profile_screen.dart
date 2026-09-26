@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../common/custom_button.dart';
 import '../../data/services/supabase_auth_service.dart';
 import '../../data/repos/mess_repo.dart';
+import '../../data/repos/profile_repo.dart';
 
 class MessProfileScreen extends StatefulWidget {
   const MessProfileScreen({super.key});
@@ -17,6 +20,9 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   late TextEditingController _nameController;
   String _inviteCode = '------';
   bool _isLoading = true;
+  File? _avatarFile;
+  String? _avatarUrl;
+  bool _isUploading = false;
   
 
   @override
@@ -28,7 +34,16 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
 
   Future<void> _loadMessData() async {
     final repo = MessRepository();
-    final data = await repo.getOwnerMessDetails();
+    final profileRepo = ProfileRepository();
+    
+    final results = await Future.wait([
+      repo.getOwnerMessDetails(),
+      profileRepo.getMemberProfileDetails(),
+    ]);
+    
+    final data = results[0];
+    final profileData = results[1];
+
     if (mounted) {
       setState(() {
         if (data != null) {
@@ -37,6 +52,9 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
         } else {
           _nameController.text = 'Your Mess';
           _inviteCode = 'Error';
+        }
+        if (profileData != null) {
+          _avatarUrl = profileData['avatar_url'] as String?;
         }
         _isLoading = false;
       });
@@ -47,6 +65,48 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 70,
+    );
+
+    if (image == null) return;
+
+    setState(() {
+      _avatarFile = File(image.path);
+      _isUploading = true;
+    });
+
+    try {
+      final repo = ProfileRepository();
+      final newUrl = await repo.uploadAvatar(_avatarFile!);
+      if (mounted) {
+        setState(() {
+          _avatarUrl = newUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile image updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload image: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -91,45 +151,86 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   }
 
   Widget _buildProfileImage(ColorScheme colorScheme) {
+    ImageProvider? imageProvider;
+    if (_avatarFile != null) {
+      imageProvider = FileImage(_avatarFile!);
+    } else if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
+      imageProvider = NetworkImage(_avatarUrl!);
+    }
+
+    final displayName = _nameController.text.isNotEmpty && _nameController.text != 'Loading...' && _nameController.text != 'Your Mess'
+        ? _nameController.text
+        : 'Umiyaji';
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+
     return Center(
-      child: Stack(
-        children: [
-          Container(
-            width: 120.0,
-            height: 120.0,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.grey.shade300,
-              image: const DecorationImage(
-                image: AssetImage('assets/images/meal.png'), // Placeholder for dining hall
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(8.0),
+      child: GestureDetector(
+        onTap: _pickAndUploadAvatar,
+        child: Stack(
+          children: [
+            Container(
+              width: 120.0,
+              height: 120.0,
               decoration: BoxDecoration(
-                color: Colors.white,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: const Color(0xFFFFECE8),
+                image: imageProvider != null
+                    ? DecorationImage(
+                        image: imageProvider,
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Icon(
-                Icons.camera_alt,
-                color: colorScheme.primary,
-                size: 20.0,
+              child: imageProvider == null
+                  ? Center(
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          color: Color(0xFFBA2D1D),
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            if (_isUploading)
+              Container(
+                width: 120.0,
+                height: 120.0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.camera_alt,
+                  color: colorScheme.primary,
+                  size: 20.0,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

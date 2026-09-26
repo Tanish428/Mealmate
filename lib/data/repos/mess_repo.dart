@@ -115,7 +115,7 @@ class MessRepository {
 
       final result = await _client
           .from('messes')
-          .select('mess_name, invite_code, served_meals')
+          .select('id, mess_name, invite_code, served_meals')
           .eq('owner_id', userId)
           .maybeSingle();
 

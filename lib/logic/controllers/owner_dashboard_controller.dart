@@ -3,9 +3,13 @@ import '../../data/repos/mess_repo.dart';
 import '../../data/repos/feedback_repo.dart';
 import '../../data/repos/broadcast_repo.dart';
 import '../../data/repos/menu_repo.dart';
+import '../../data/repos/profile_repo.dart';
+import '../../data/repos/attendance_repo.dart';
+import 'dart:math' as math;
 
 class OwnerDashboardStats {
   final String messName;
+  final String? avatarUrl;
   final int activeMembersCount;
   final double averageRating;
   final int feedbackCount;
@@ -13,9 +17,14 @@ class OwnerDashboardStats {
   final String nextMealTitle;
   final String nextMealTime;
   final List<String> nextMealItems;
+  final int attendingCount;
+  final int optedOutCount;
+  final double attendanceRate;
+  final String nextMealKey;
 
   const OwnerDashboardStats({
     required this.messName,
+    this.avatarUrl,
     required this.activeMembersCount,
     required this.averageRating,
     required this.feedbackCount,
@@ -23,6 +32,10 @@ class OwnerDashboardStats {
     required this.nextMealTitle,
     required this.nextMealTime,
     this.nextMealItems = const [],
+    this.attendingCount = 0,
+    this.optedOutCount = 0,
+    this.attendanceRate = 0.0,
+    this.nextMealKey = '',
   });
 }
 
@@ -31,6 +44,7 @@ class OwnerDashboardController extends ChangeNotifier {
   final FeedbackRepo _feedbackRepo;
   final BroadcastRepo _broadcastRepo;
   final MenuRepository _menuRepo;
+  final AttendanceRepo _attendanceRepo;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -41,11 +55,13 @@ class OwnerDashboardController extends ChangeNotifier {
     FeedbackRepo? feedbackRepo,
     BroadcastRepo? broadcastRepo,
     MenuRepository? menuRepo,
+    AttendanceRepo? attendanceRepo,
     bool autoLoad = true,
   })  : _messRepo = messRepo ?? MessRepository(),
         _feedbackRepo = feedbackRepo ?? FeedbackRepo(),
         _broadcastRepo = broadcastRepo ?? BroadcastRepo(),
-        _menuRepo = menuRepo ?? MenuRepository() {
+        _menuRepo = menuRepo ?? MenuRepository(),
+        _attendanceRepo = attendanceRepo ?? AttendanceRepo() {
     if (autoLoad) {
       loadDashboard();
     }
@@ -62,36 +78,39 @@ class OwnerDashboardController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Fetch mess name
-      final nameFuture = _messRepo.getOwnerMessName();
-
-      // 2. Fetch members list for accurate count
+      final messDetailsFuture = _messRepo.getOwnerMessDetails();
       final membersFuture = _messRepo.getMessMembers();
-
-      // 3. Fetch feedback
       final feedbackListFuture = _feedbackRepo.getMessFeedback();
-
-      // 4. Fetch broadcasts
       final broadcastsFuture = _broadcastRepo.getMessBroadcasts();
-
-      // 5. Fetch today's menu
       final todayMenuFuture = _menuRepo.getTodayMenu();
+      final profileFuture = ProfileRepository().getMemberProfileDetails();
 
       final results = await Future.wait([
-        nameFuture,
+        messDetailsFuture,
         membersFuture,
         feedbackListFuture,
         broadcastsFuture,
         todayMenuFuture,
+        profileFuture,
       ]);
 
-      final messName = (results[0] as String?) ?? 'Your Mess';
+      final messDetails = results[0] as Map<String, dynamic>?;
+      final messName = messDetails?['mess_name'] as String? ?? 'Your Mess';
+      final messId = messDetails?['id']?.toString() ?? '';
+      
+      final rawServedMeals = messDetails?['served_meals'];
+      List<String> servedMeals = [];
+      if (rawServedMeals is List) {
+        servedMeals = rawServedMeals.map((e) => e.toString().toLowerCase()).toList();
+      }
+      
       final members = results[1] as List<Map<String, dynamic>>? ?? [];
       final feedbacks = results[2] as List<Map<String, dynamic>>? ?? [];
       final broadcasts = results[3] as List<Map<String, dynamic>>? ?? [];
       final todayMenu = results[4] as List<Map<String, dynamic>>? ?? [];
+      final profileData = results[5] as Map<String, dynamic>?;
+      final avatarUrl = profileData?['avatar_url'] as String?;
 
-      // Calculate dynamic average rating
       double totalRating = 0.0;
       int ratedCount = 0;
       for (final entry in feedbacks) {
@@ -106,18 +125,41 @@ class OwnerDashboardController extends ChangeNotifier {
       }
       final double avgRating = ratedCount > 0 ? (totalRating / ratedCount) : 0.0;
 
-      // Determine next meal based on current hour
-      final nextMealData = _computeNextMeal(todayMenu);
+      final nextMealData = _computeNextMeal(todayMenu, servedMeals);
+      
+      int optedOutCount = 0;
+      if (messId.isNotEmpty && nextMealData.$1.isNotEmpty) {
+        // If meal is tomorrow, we use tomorrow's date? No, logic says skip_date == today for now, but wait, if it's tomorrow, skip_date might be tomorrow.
+        // Actually, user spec: count of skips where skip_date == today. But let's use the actual meal date.
+        DateTime mealDate = DateTime.now();
+        if (nextMealData.$5) {
+          mealDate = mealDate.add(const Duration(days: 1));
+        }
+        optedOutCount = await _attendanceRepo.getOptedOutCount(
+          messId: messId, 
+          date: mealDate, 
+          mealType: nextMealData.$1
+        );
+      }
+      
+      final totalJoinedMembers = members.length;
+      final attendingCount = math.max(0, totalJoinedMembers - optedOutCount);
+      final attendanceRate = totalJoinedMembers > 0 ? (attendingCount / totalJoinedMembers) * 100 : 0.0;
 
       _stats = OwnerDashboardStats(
         messName: messName,
-        activeMembersCount: members.length,
+        avatarUrl: avatarUrl,
+        activeMembersCount: totalJoinedMembers,
         averageRating: avgRating,
         feedbackCount: feedbacks.length,
         broadcastCount: broadcasts.length,
-        nextMealTitle: nextMealData.$1,
-        nextMealTime: nextMealData.$2,
-        nextMealItems: nextMealData.$3,
+        nextMealKey: nextMealData.$1,
+        nextMealTitle: nextMealData.$2,
+        nextMealTime: nextMealData.$3,
+        nextMealItems: nextMealData.$4,
+        attendingCount: attendingCount,
+        optedOutCount: optedOutCount,
+        attendanceRate: attendanceRate,
       );
     } catch (e) {
       _errorMessage = 'Failed to load dashboard: $e';
@@ -127,30 +169,46 @@ class OwnerDashboardController extends ChangeNotifier {
     }
   }
 
-  (String, String, List<String>) _computeNextMeal(List<Map<String, dynamic>> todayMenu) {
+  (String, String, String, List<String>, bool) _computeNextMeal(List<Map<String, dynamic>> todayMenu, List<String> servedMeals) {
+    if (servedMeals.isEmpty) {
+      return ('', 'No Meals configured', '', [], false);
+    }
+
     final now = DateTime.now();
     final hour = now.hour;
+    final minute = now.minute;
+    final time = hour + minute / 60.0;
 
-    String mealKey;
-    String mealTitle;
-    String mealTime;
+    String mealKey = '';
+    String mealTitle = '';
+    String mealTime = '';
+    bool isTomorrow = false;
 
-    if (hour < 10) {
+    if (servedMeals.contains('breakfast') && time < 10.0) {
       mealKey = 'breakfast';
       mealTitle = 'Breakfast';
       mealTime = '7:30 AM - 9:30 AM';
-    } else if (hour < 15) {
+    } else if (servedMeals.contains('lunch') && time < 15.0) {
       mealKey = 'lunch';
       mealTitle = 'Lunch';
       mealTime = '12:30 PM - 2:30 PM';
-    } else if (hour < 21) {
+    } else if (servedMeals.contains('dinner') && time < 22.0) {
       mealKey = 'dinner';
       mealTitle = 'Dinner';
       mealTime = '7:30 PM - 9:30 PM';
     } else {
-      mealKey = 'breakfast';
-      mealTitle = 'Breakfast (Tomorrow)';
-      mealTime = '7:30 AM - 9:30 AM';
+      isTomorrow = true;
+      mealKey = servedMeals.first;
+      if (mealKey == 'breakfast') {
+        mealTitle = 'Breakfast (Tomorrow)';
+        mealTime = '7:30 AM - 9:30 AM';
+      } else if (mealKey == 'lunch') {
+        mealTitle = 'Lunch (Tomorrow)';
+        mealTime = '12:30 PM - 2:30 PM';
+      } else if (mealKey == 'dinner') {
+        mealTitle = 'Dinner (Tomorrow)';
+        mealTime = '7:30 PM - 9:30 PM';
+      }
     }
 
     List<String> items = [];
@@ -163,6 +221,6 @@ class OwnerDashboardController extends ChangeNotifier {
       items = (match['items'] as List).map((e) => e.toString()).toList();
     }
 
-    return (mealTitle, mealTime, items);
+    return (mealKey, mealTitle, mealTime, items, isTomorrow);
   }
 }

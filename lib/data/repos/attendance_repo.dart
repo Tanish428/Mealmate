@@ -17,6 +17,17 @@ class AttendanceRepo {
     return (response as List).map((json) => SkipModel.fromJson(json)).toList();
   }
 
+  Future<int> getOptedOutCount({required String messId, required DateTime date, required String mealType}) async {
+    final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final response = await _supabase
+        .from('skips')
+        .select('id')
+        .eq('mess_id', messId)
+        .eq('skip_date', dateString)
+        .eq('meal_type', mealType);
+    return (response as List).length;
+  }
+
   Future<void> toggleMealSkip({required String messId, required DateTime date, required String mealType, required bool shouldSkip}) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw 'User not authenticated';
