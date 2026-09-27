@@ -4,3 +4,4 @@ export 'feedback_repo.dart';
 export 'menu_repo.dart';
 export 'mess_repo.dart';
 export 'profile_repo.dart';
+export 'surplus_repo.dart';
