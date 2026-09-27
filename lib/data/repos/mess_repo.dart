@@ -30,12 +30,24 @@ class MessRepository {
 
       final inviteCode = _generateInviteCode();
 
+      final Map<String, dynamic> initialMealTimings = {};
+      if (servedMeals.contains('breakfast')) {
+        initialMealTimings['breakfast'] = {"start": "07:30", "end": "09:30", "cutoff": "07:00"};
+      }
+      if (servedMeals.contains('lunch')) {
+        initialMealTimings['lunch'] = {"start": "12:30", "end": "14:30", "cutoff": "10:00"};
+      }
+      if (servedMeals.contains('dinner')) {
+        initialMealTimings['dinner'] = {"start": "19:30", "end": "21:30", "cutoff": "19:00"};
+      }
+
       // Insert mess and select the newly generated UUID
       final response = await _client.from('messes').insert({
         'owner_id': userId,
         'mess_name': messName,
         'invite_code': inviteCode,
         'served_meals': servedMeals,
+        'meal_timings': initialMealTimings,
       }).select('id').single();
 
       final newlyCreatedMessId = response['id'];
@@ -115,13 +127,37 @@ class MessRepository {
 
       final result = await _client
           .from('messes')
-          .select('id, mess_name, invite_code, served_meals')
+          .select('id, mess_name, invite_code, served_meals, meal_timings')
           .eq('owner_id', userId)
           .maybeSingle();
 
       return result;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Updates the meal timings for a specific mess by its primary key.
+  /// Uses the mess `id` (primary key) for a precise single-row update.
+  /// RLS policies on the `messes` table handle ownership authorization.
+  Future<void> updateMealTimings({
+    required String messId,
+    required Map<String, dynamic> mealTimings,
+  }) async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User is not authenticated.');
+      }
+
+      await _client
+          .from('messes')
+          .update({'meal_timings': mealTimings})
+          .eq('id', messId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update meal timings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update meal timings: $e');
     }
   }
 

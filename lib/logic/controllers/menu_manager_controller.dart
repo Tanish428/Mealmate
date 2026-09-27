@@ -59,6 +59,7 @@ class MenuManagerController extends ChangeNotifier {
   String? _errorMessage;
   
   List<String> _servedMeals = [];
+  Map<String, dynamic> _mealTimings = {};
 
   // Meal dishes by slot
   final Map<String, List<DishItem>> _slotDishes = {
@@ -82,11 +83,14 @@ class MenuManagerController extends ChangeNotifier {
     notifyListeners();
     try {
       final details = await _messRepo.getOwnerMessDetails();
-      if (details != null && details['served_meals'] != null) {
-        _servedMeals = List<String>.from(details['served_meals']);
-        if (_servedMeals.isNotEmpty) {
-           _selectedMealSlot = _servedMeals.first.toLowerCase();
+      if (details != null) {
+        if (details['served_meals'] != null) {
+          _servedMeals = List<String>.from(details['served_meals']);
+          if (_servedMeals.isNotEmpty) {
+             _selectedMealSlot = _servedMeals.first.toLowerCase();
+          }
         }
+        _mealTimings = details['meal_timings'] as Map<String, dynamic>? ?? {};
       }
       await loadMenuForDate(_selectedDate);
     } catch (e) {
@@ -95,6 +99,27 @@ class MenuManagerController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  String _formatTime12Hour(String time) {
+    try {
+      final parts = time.split(':');
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final dt = DateTime(2020, 1, 1, h, m);
+      return "${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
+    } catch (_) {
+      return time;
+    }
+  }
+
+  String getFormattedMealTime(String mealType) {
+    final lowerMeal = mealType.toLowerCase();
+    final data = _mealTimings[lowerMeal];
+    if (data != null && data['start'] != null && data['end'] != null) {
+      return '${_formatTime12Hour(data['start'])} - ${_formatTime12Hour(data['end'])}';
+    }
+    return 'Not Configured';
   }
 
   DateTime get selectedDate => _selectedDate;

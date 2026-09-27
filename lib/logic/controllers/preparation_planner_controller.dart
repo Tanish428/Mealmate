@@ -25,6 +25,7 @@ class PreparationPlannerController extends ChangeNotifier {
   String _messId = '';
   String _messName = '';
   List<String> _menuItemsList = [];
+  Map<String, dynamic> _mealTimings = {};
 
   PreparationPlannerController({
     MessRepository? messRepo,
@@ -56,43 +57,66 @@ class PreparationPlannerController extends ChangeNotifier {
   }
 
   String get serviceHours {
-    if (_selectedMeal == 'breakfast') return '7:30 AM - 9:30 AM';
-    if (_selectedMeal == 'lunch') return '12:30 PM - 2:30 PM';
-    if (_selectedMeal == 'dinner') return '7:30 PM - 9:30 PM';
+    if (_selectedMeal == null) return '';
+    final data = _mealTimings[_selectedMeal];
+    if (data != null && data['start'] != null && data['end'] != null) {
+      return '${_formatTime12Hour(data['start'])} - ${_formatTime12Hour(data['end'])}';
+    }
+    
+    
+    
     return '';
   }
 
   String get readyByTime {
-    if (_selectedMeal == 'breakfast') return '7:15 AM';
-    if (_selectedMeal == 'lunch') return '12:15 PM';
-    if (_selectedMeal == 'dinner') return '7:15 PM';
+    if (_selectedMeal == null) return '';
+    final data = _mealTimings[_selectedMeal];
+    if (data != null && data['start'] != null) {
+      final parts = data['start'].split(':');
+      final dt = DateTime(2020, 1, 1, int.parse(parts[0]), int.parse(parts[1]));
+      final readyBy = dt.subtract(const Duration(minutes: 15));
+      return "${readyBy.hour > 12 ? readyBy.hour - 12 : (readyBy.hour == 0 ? 12 : readyBy.hour)}:${readyBy.minute.toString().padLeft(2, '0')} ${readyBy.hour >= 12 ? 'PM' : 'AM'}";
+    }
     return '';
+  }
+  
+  String _formatTime12Hour(String time) {
+    try {
+      final parts = time.split(':');
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final dt = DateTime(2020, 1, 1, h, m);
+      return "${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
+    } catch (_) {
+      return time;
+    }
+  }
+
+  DateTime? get _cutoffDateTime {
+    if (_selectedMeal == null) return null;
+    int cutoffHour = 0;
+    int cutoffMinute = 0;
+    
+    final data = _mealTimings[_selectedMeal];
+    if (data != null && data['cutoff'] != null) {
+      final parts = data['cutoff'].split(':');
+      cutoffHour = int.parse(parts[0]);
+      cutoffMinute = int.parse(parts[1]);
+    } else {
+      return null;
+    }
+    
+    return DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, cutoffHour, cutoffMinute);
   }
 
   bool get isFinalized {
     if (_selectedMeal == null) return false;
     
     final now = DateTime.now();
+    final cutoffDate = _cutoffDateTime;
+    if (cutoffDate == null) return false;
     
-    if (_selectedDate.year < now.year ||
-        (_selectedDate.year == now.year && _selectedDate.month < now.month) ||
-        (_selectedDate.year == now.year && _selectedDate.month == now.month && _selectedDate.day < now.day)) {
-      return true; // Past date
-    }
-    
-    if (_selectedDate.year > now.year ||
-        (_selectedDate.year == now.year && _selectedDate.month > now.month) ||
-        (_selectedDate.year == now.year && _selectedDate.month == now.month && _selectedDate.day > now.day)) {
-      return false; // Future date
-    }
-
-    int cutoffHour = 0;
-    if (_selectedMeal == 'breakfast') cutoffHour = 7;
-    else if (_selectedMeal == 'lunch') cutoffHour = 10;
-    else if (_selectedMeal == 'dinner') cutoffHour = 19;
-    else return false;
-
-    return now.hour >= cutoffHour;
+    return now.isAfter(cutoffDate) || now.isAtSameMomentAs(cutoffDate);
   }
   
   String get remainingTimeUntilCutoff {
@@ -100,13 +124,9 @@ class PreparationPlannerController extends ChangeNotifier {
     if (_selectedMeal == null) return '';
     
     final now = DateTime.now();
+    final cutoffDate = _cutoffDateTime;
+    if (cutoffDate == null) return '';
     
-    int cutoffHour = 0;
-    if (_selectedMeal == 'breakfast') cutoffHour = 7;
-    else if (_selectedMeal == 'lunch') cutoffHour = 10;
-    else if (_selectedMeal == 'dinner') cutoffHour = 19;
-    
-    final cutoffDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, cutoffHour, 0);
     final diff = cutoffDate.difference(now);
     
     if (diff.inHours > 24) return "Cutoff tomorrow";
@@ -114,9 +134,11 @@ class PreparationPlannerController extends ChangeNotifier {
   }
 
   String get formattedCutoffTime {
-    if (_selectedMeal == 'breakfast') return '07:00 AM';
-    if (_selectedMeal == 'lunch') return '10:00 AM';
-    if (_selectedMeal == 'dinner') return '07:00 PM';
+    if (_selectedMeal == null) return '';
+    final data = _mealTimings[_selectedMeal];
+    if (data != null && data['cutoff'] != null) {
+      return _formatTime12Hour(data['cutoff']);
+    }
     return '';
   }
 
@@ -187,11 +209,25 @@ _Generated via MealMate Owner App_
     if (_servedMeals.isEmpty) return;
     
     final now = DateTime.now();
-    if (now.hour < 10 && _servedMeals.contains('breakfast')) {
+    final time = now.hour + now.minute / 60.0;
+
+    double getEndTime(String m) {
+      final data = _mealTimings[m];
+      if (data != null && data['end'] != null) {
+        final parts = data['end'].split(':');
+        return int.parse(parts[0]) + int.parse(parts[1]) / 60.0;
+      }
+      if (m == 'breakfast') return 10.0;
+      if (m == 'lunch') return 15.0;
+      if (m == 'dinner') return 22.0;
+      return 24.0;
+    }
+
+    if (time < getEndTime('breakfast') && _servedMeals.contains('breakfast')) {
       _selectedMeal = 'breakfast';
-    } else if (now.hour < 15 && _servedMeals.contains('lunch')) {
+    } else if (time < getEndTime('lunch') && _servedMeals.contains('lunch')) {
       _selectedMeal = 'lunch';
-    } else if (now.hour < 22 && _servedMeals.contains('dinner')) {
+    } else if (time < getEndTime('dinner') && _servedMeals.contains('dinner')) {
       _selectedMeal = 'dinner';
     } else {
       _selectedDate = now.add(const Duration(days: 1));

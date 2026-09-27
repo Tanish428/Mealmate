@@ -49,6 +49,7 @@ class OwnerDashboardController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   OwnerDashboardStats? _stats;
+  Map<String, dynamic> _mealTimings = {};
 
   OwnerDashboardController({
     MessRepository? messRepo,
@@ -103,6 +104,9 @@ class OwnerDashboardController extends ChangeNotifier {
       if (rawServedMeals is List) {
         servedMeals = rawServedMeals.map((e) => e.toString().toLowerCase()).toList();
       }
+
+      final mealTimings = messDetails?['meal_timings'] as Map<String, dynamic>? ?? {};
+      _mealTimings = mealTimings;
       
       final members = results[1] as List<Map<String, dynamic>>? ?? [];
       final feedbacks = results[2] as List<Map<String, dynamic>>? ?? [];
@@ -125,7 +129,7 @@ class OwnerDashboardController extends ChangeNotifier {
       }
       final double avgRating = ratedCount > 0 ? (totalRating / ratedCount) : 0.0;
 
-      final nextMealData = _computeNextMeal(todayMenu, servedMeals);
+      final nextMealData = _computeNextMeal(todayMenu, servedMeals, mealTimings);
       
       int optedOutCount = 0;
       if (messId.isNotEmpty && nextMealData.$1.isNotEmpty) {
@@ -169,7 +173,8 @@ class OwnerDashboardController extends ChangeNotifier {
     }
   }
 
-  (String, String, String, List<String>, bool) _computeNextMeal(List<Map<String, dynamic>> todayMenu, List<String> servedMeals) {
+  (String, String, String, List<String>, bool) _computeNextMeal(
+      List<Map<String, dynamic>> todayMenu, List<String> servedMeals, Map<String, dynamic> mealTimings) {
     if (servedMeals.isEmpty) {
       return ('', 'No Meals configured', '', [], false);
     }
@@ -184,31 +189,41 @@ class OwnerDashboardController extends ChangeNotifier {
     String mealTime = '';
     bool isTomorrow = false;
 
-    if (servedMeals.contains('breakfast') && time < 10.0) {
+    // Helper to get end time from timings or use default
+    double getEndTime(String m) {
+      final data = mealTimings[m];
+      if (data != null && data['end'] != null) {
+        final parts = data['end'].split(':');
+        return int.parse(parts[0]) + int.parse(parts[1]) / 60.0;
+      }
+      return 0.0; // If not configured, force skip
+    }
+
+    String getFormattedTime(String m) {
+      final data = mealTimings[m];
+      if (data != null && data['start'] != null && data['end'] != null) {
+        return '${formatTime12Hour(data['start'])} - ${formatTime12Hour(data['end'])}';
+      }
+      return 'Not Configured';
+    }
+
+    if (servedMeals.contains('breakfast') && time < getEndTime('breakfast')) {
       mealKey = 'breakfast';
       mealTitle = 'Breakfast';
-      mealTime = '7:30 AM - 9:30 AM';
-    } else if (servedMeals.contains('lunch') && time < 15.0) {
+      mealTime = getFormattedTime('breakfast');
+    } else if (servedMeals.contains('lunch') && time < getEndTime('lunch')) {
       mealKey = 'lunch';
       mealTitle = 'Lunch';
-      mealTime = '12:30 PM - 2:30 PM';
-    } else if (servedMeals.contains('dinner') && time < 22.0) {
+      mealTime = getFormattedTime('lunch');
+    } else if (servedMeals.contains('dinner') && time < getEndTime('dinner')) {
       mealKey = 'dinner';
       mealTitle = 'Dinner';
-      mealTime = '7:30 PM - 9:30 PM';
+      mealTime = getFormattedTime('dinner');
     } else {
       isTomorrow = true;
       mealKey = servedMeals.first;
-      if (mealKey == 'breakfast') {
-        mealTitle = 'Breakfast (Tomorrow)';
-        mealTime = '7:30 AM - 9:30 AM';
-      } else if (mealKey == 'lunch') {
-        mealTitle = 'Lunch (Tomorrow)';
-        mealTime = '12:30 PM - 2:30 PM';
-      } else if (mealKey == 'dinner') {
-        mealTitle = 'Dinner (Tomorrow)';
-        mealTime = '7:30 PM - 9:30 PM';
-      }
+      mealTitle = '${mealKey[0].toUpperCase()}${mealKey.substring(1)} (Tomorrow)';
+      mealTime = getFormattedTime(mealKey);
     }
 
     List<String> items = [];
@@ -222,5 +237,26 @@ class OwnerDashboardController extends ChangeNotifier {
     }
 
     return (mealKey, mealTitle, mealTime, items, isTomorrow);
+  }
+
+  String getFormattedMealTime(String mealType) {
+    final lowerMeal = mealType.toLowerCase();
+    final data = _mealTimings[lowerMeal];
+    if (data != null && data['start'] != null && data['end'] != null) {
+      return '${formatTime12Hour(data['start'])} - ${formatTime12Hour(data['end'])}';
+    }
+    return 'Not Configured';
+  }
+
+  String formatTime12Hour(String time) {
+    try {
+      final parts = time.split(':');
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final dt = DateTime(2020, 1, 1, h, m);
+      return "${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
+    } catch (_) {
+      return time;
+    }
   }
 }

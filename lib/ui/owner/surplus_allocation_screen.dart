@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-class SurplusAllocationScreen extends StatefulWidget {
+import 'package:provider/provider.dart';
+import '../../logic/controllers/owner_dashboard_controller.dart';class SurplusAllocationScreen extends StatefulWidget {
   const SurplusAllocationScreen({super.key});
 
   @override
@@ -159,7 +159,7 @@ class _SurplusAllocationScreenState extends State<SurplusAllocationScreen> {
                     ),
                     const SizedBox(height: 2.0),
                     Text(
-                      "12:30 PM – 2:30 PM",
+                      context.read<OwnerDashboardController>().getFormattedMealTime('lunch'),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
                           ),

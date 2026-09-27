@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../logic/controllers/menu_manager_controller.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../../data/repos/menu_repo.dart';
@@ -86,12 +88,35 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
   late List<DateTime> _weekDates;
   List<MealSlotModel> _currentSlots = [];
 
-  List<MealSlotModel> _createEmptySlots(List<String> servedMeals) {
+  String _formatTime12Hour(String time) {
+    try {
+      final parts = time.split(':');
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final dt = DateTime(2020, 1, 1, h, m);
+      return "${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
+    } catch (_) {
+      return time;
+    }
+  }
+
+  String _getFormattedMealTime(Map<String, dynamic>? mealTimings, String mealType) {
+    final lowerMeal = mealType.toLowerCase();
+    if (mealTimings == null || mealTimings.isEmpty) {
+      return 'Not Configured';
+    }
+    final data = mealTimings[lowerMeal];
+    if (data != null && data['start'] != null && data['end'] != null) {
+      return '${_formatTime12Hour(data['start'])} - ${_formatTime12Hour(data['end'])}';
+    }
+    return 'Not Configured';
+  }
+List<MealSlotModel> _createEmptySlots(List<String> servedMeals, Map<String, dynamic>? mealTimings) {
     final Map<String, MealSlotModel> slotConfig = {
       'breakfast': MealSlotModel(
         id: '1',
         title: 'Breakfast',
-        timeRange: '7:30 AM - 9:30 AM',
+        timeRange: _getFormattedMealTime(mealTimings, 'breakfast'),
         isAvailable: true,
         iconData: Icons.wb_sunny_outlined,
         dishes: [],
@@ -99,7 +124,7 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
       'lunch': MealSlotModel(
         id: '2',
         title: 'Lunch',
-        timeRange: '12:30 PM - 2:30 PM',
+        timeRange: _getFormattedMealTime(mealTimings, 'lunch'),
         isAvailable: true,
         iconData: Icons.restaurant,
         dishes: [],
@@ -107,7 +132,7 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
       'dinner': MealSlotModel(
         id: '3',
         title: 'Dinner',
-        timeRange: '7:30 PM - 9:30 PM',
+        timeRange: _getFormattedMealTime(mealTimings, 'dinner'),
         isAvailable: true,
         iconData: Icons.nights_stay_outlined,
         dishes: [],
@@ -139,7 +164,7 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
         servedMeals = List<String>.from(messDetails['served_meals']);
       }
       
-      final emptySlots = _createEmptySlots(servedMeals);
+      Map<String, dynamic>? mealTimings; if (messDetails != null && messDetails['meal_timings'] != null) { mealTimings = messDetails['meal_timings'] as Map<String, dynamic>?; } final emptySlots = _createEmptySlots(servedMeals, mealTimings);
       for (var slot in emptySlots) {
         final mealTypeStr = slot.title.toLowerCase();
         final meal = dbMenu.firstWhere(
@@ -182,7 +207,7 @@ class _MenuManagerScreenState extends State<MenuManagerScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _currentSlots = _createEmptySlots(['breakfast', 'lunch', 'dinner']);
+          _currentSlots = _createEmptySlots(['breakfast', 'lunch', 'dinner'], null);
           
         });
       }
