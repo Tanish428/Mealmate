@@ -2,10 +2,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
 
 class SurplusRepository {
-  final SupabaseClient _client;
+  final SupabaseClient? _client;
 
+  // ignore: prefer_initializing_formals
   SurplusRepository({SupabaseClient? client})
-      : _client = client ?? Supabase.instance.client;
+      : _client = client;
+
+  SupabaseClient get _dbClient => _client ?? Supabase.instance.client;
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -25,7 +28,7 @@ class SurplusRepository {
   }) async {
     try {
       final dateStr = _formatDate(date);
-      final response = await _client
+      final response = await _dbClient
           .from('meal_prep_records')
           .select()
           .eq('mess_id', messId)
@@ -75,7 +78,7 @@ class SurplusRepository {
         if (discardedPortions != null) 'discarded_portions': discardedPortions,
       };
 
-      final response = await _client
+      final response = await _dbClient
           .from('meal_prep_records')
           .upsert(payload, onConflict: 'mess_id,prep_date,meal_type')
           .select()
@@ -99,7 +102,7 @@ class SurplusRepository {
     }
 
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('meal_prep_records')
           .update({'discarded_portions': discardedPortions})
           .eq('id', mealPrepRecordId)
@@ -126,7 +129,7 @@ class SurplusRepository {
     bool activeOnly = true,
   }) async {
     try {
-      var query = _client.from('donation_partners').select().eq('mess_id', messId);
+      var query = _dbClient.from('donation_partners').select().eq('mess_id', messId);
 
       if (activeOnly) {
         query = query.eq('is_active', true);
@@ -157,7 +160,7 @@ class SurplusRepository {
     }
 
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('donation_partners')
           .insert({
             'mess_id': messId,
@@ -204,7 +207,7 @@ class SurplusRepository {
         if (isActive != null) 'is_active': isActive,
       };
 
-      final response = await _client
+      final response = await _dbClient
           .from('donation_partners')
           .update(payload)
           .eq('id', partnerId)
@@ -232,7 +235,7 @@ class SurplusRepository {
     required String mealPrepRecordId,
   }) async {
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('surplus_allocations')
           .select('*, donation_partners(name)')
           .eq('meal_prep_record_id', mealPrepRecordId)
@@ -271,7 +274,7 @@ class SurplusRepository {
         if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
       };
 
-      final response = await _client
+      final response = await _dbClient
           .from('surplus_allocations')
           .insert(payload)
           .select('*, donation_partners(name)')
@@ -301,7 +304,7 @@ class SurplusRepository {
     }
 
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('surplus_allocations')
           .update({'status': normalizedStatus})
           .eq('id', allocationId)
@@ -330,7 +333,7 @@ class SurplusRepository {
     DateTime? endDate,
   }) async {
     try {
-      var query = _client
+      var query = _dbClient
           .from('surplus_allocations')
           .select('quantity')
           .eq('mess_id', messId)
@@ -364,7 +367,7 @@ class SurplusRepository {
     DateTime? endDate,
   }) async {
     try {
-      var query = _client
+      var query = _dbClient
           .from('meal_prep_records')
           .select('discarded_portions')
           .eq('mess_id', messId);

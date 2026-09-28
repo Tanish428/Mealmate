@@ -164,6 +164,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
 
     return Center(
+      
       child: GestureDetector(
         onTap: _pickAndUploadAvatar,
         child: Stack(
