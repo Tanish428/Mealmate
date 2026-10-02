@@ -8,6 +8,7 @@ class MealPrepRecordModel {
   final int servedPortions;
   final int discardedPortions;
   final int surplusPortions;
+  final int? costPerMeal;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -20,6 +21,7 @@ class MealPrepRecordModel {
     this.preparedPortions = 0,
     this.servedPortions = 0,
     this.discardedPortions = 0,
+    this.costPerMeal,
     int? surplusPortions,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -58,6 +60,7 @@ class MealPrepRecordModel {
       servedPortions: served,
       discardedPortions: (json['discarded_portions'] as num?)?.toInt() ?? 0,
       surplusPortions: (json['surplus_portions'] as num?)?.toInt() ?? (prepared - served),
+      costPerMeal: (json['cost_per_meal'] as num?)?.toInt(),
       createdAt: createdAtRaw != null ? DateTime.parse(createdAtRaw.toString()) : DateTime.now(),
       updatedAt: updatedAtRaw != null ? DateTime.parse(updatedAtRaw.toString()) : DateTime.now(),
     );
@@ -75,6 +78,7 @@ class MealPrepRecordModel {
       'prepared_portions': preparedPortions,
       'served_portions': servedPortions,
       'discarded_portions': discardedPortions,
+      if (costPerMeal != null) 'cost_per_meal': costPerMeal,
     };
   }
 
@@ -88,6 +92,7 @@ class MealPrepRecordModel {
     int? servedPortions,
     int? discardedPortions,
     int? surplusPortions,
+    int? costPerMeal,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -101,6 +106,7 @@ class MealPrepRecordModel {
       servedPortions: servedPortions ?? this.servedPortions,
       discardedPortions: discardedPortions ?? this.discardedPortions,
       surplusPortions: surplusPortions ?? this.surplusPortions,
+      costPerMeal: costPerMeal ?? this.costPerMeal,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

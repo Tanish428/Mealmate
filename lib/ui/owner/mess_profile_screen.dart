@@ -18,11 +18,8 @@ class MessProfileScreen extends StatefulWidget {
 
 class _MessProfileScreenState extends State<MessProfileScreen> {
   late TextEditingController _nameController;
-  late TextEditingController _costController;
-  String _messId = '';
   String _inviteCode = '------';
   bool _isLoading = true;
-  bool _isSavingCost = false;
   File? _avatarFile;
   String? _avatarUrl;
   bool _isUploading = false;
@@ -31,7 +28,6 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: "Loading...");
-    _costController = TextEditingController(text: "50");
     _loadMessData();
   }
 
@@ -50,13 +46,8 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     if (mounted) {
       setState(() {
         if (data != null) {
-          _messId = data['id']?.toString() ?? '';
           _nameController.text = data['mess_name'] ?? 'Your Mess';
           _inviteCode = data['invite_code'] ?? 'N/A';
-          final cpm = data['cost_per_meal'];
-          if (cpm != null) {
-            _costController.text = cpm.toString();
-          }
         } else {
           _nameController.text = 'Your Mess';
           _inviteCode = 'Error';
@@ -72,40 +63,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _costController.dispose();
     super.dispose();
-  }
-
-  Future<void> _updateCostPerMeal() async {
-    final val = int.tryParse(_costController.text.trim());
-    if (val == null || val <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid positive number for cost per meal.')),
-      );
-      return;
-    }
-    if (_messId.isEmpty) return;
-
-    setState(() => _isSavingCost = true);
-    try {
-      final repo = MessRepository();
-      await repo.updateCostPerMeal(messId: _messId, costPerMeal: val);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Meal baseline cost updated to ₹$val per plate!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update cost: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSavingCost = false);
-      }
-    }
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -169,7 +127,9 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
               _buildProfileImage(colorScheme),
               const SizedBox(height: 32.0),
               _buildMessDetailsCard(colorScheme, textTheme),
-              const SizedBox(height: 24.0),
+              const SizedBox(height: 20.0),
+              _buildMealTimingsCard(colorScheme, textTheme),
+              const SizedBox(height: 20.0),
               _buildInviteSection(colorScheme, textTheme),
               const SizedBox(height: 32.0),
               _buildLogOutButton(colorScheme),
@@ -381,83 +341,78 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
               color: Colors.grey.shade500,
             ),
           ),
-          const SizedBox(height: 20.0),
+        ],
+      ),
+    );
+  }
 
-          // Cost Baseline Per Meal
-          Text(
-            "Cost Baseline Per Meal (₹)",
-            style: textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade800,
-            ),
+  Widget _buildMealTimingsCard(ColorScheme colorScheme, TextTheme textTheme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(height: 4.0),
-          Text(
-            "Used to quantify financial ROI and food waste in executive audit reports.",
-            style: textTheme.bodySmall?.copyWith(
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8.0),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.0),
-                    border: Border.all(color: Colors.grey.shade300),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16.0),
+          onTap: () {
+            context.go('/owner/profile/timings');
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFFFECE8),
                   ),
-                  child: Row(
+                  child: Icon(
+                    Icons.access_time,
+                    color: colorScheme.primary,
+                    size: 24.0,
+                  ),
+                ),
+                const SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "₹",
-                        style: TextStyle(
-                          fontSize: 18,
+                        "Meal Timings & Cutoffs",
+                        style: textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: colorScheme.primary,
+                          color: Colors.black,
                         ),
                       ),
-                      const SizedBox(width: 8.0),
-                      Expanded(
-                        child: TextField(
-                          controller: _costController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "50",
-                          ),
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
-                          ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        "Manage serving windows and opt-out cutoffs",
+                        style: textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 12.0),
-              ElevatedButton(
-                onPressed: _isSavingCost ? null : _updateCostPerMeal,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey.shade400,
+                  size: 24.0,
                 ),
-                child: _isSavingCost
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text("Save Cost", style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -553,7 +508,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
       icon: Icons.logout,
       onPressed: () async { 
         await SupabaseAuthService().signOut();
-        if (context.mounted) {
+        if (mounted) {
           context.go('/login'); 
         }
       },

@@ -27,6 +27,7 @@ class PreparationPlannerController extends ChangeNotifier {
   String _messId = '';
   String _messName = '';
   List<String> _menuItemsList = [];
+  Map<String, dynamic>? _mealTimings;
 
   PreparationPlannerController({
     MessRepository? messRepo,
@@ -73,6 +74,31 @@ class PreparationPlannerController extends ChangeNotifier {
     return '';
   }
 
+  int _getCutoffHour(String meal) {
+    if (_mealTimings != null && _mealTimings!.containsKey(meal)) {
+      final timing = _mealTimings![meal] as Map?;
+      final cutoffStr = timing?['cutoff']?.toString();
+      if (cutoffStr != null && cutoffStr.contains(':')) {
+        return int.tryParse(cutoffStr.split(':')[0]) ?? 0;
+      }
+    }
+    if (meal == 'breakfast') return 7;
+    if (meal == 'lunch') return 10;
+    if (meal == 'dinner') return 19;
+    return 0;
+  }
+
+  int _getCutoffMinute(String meal) {
+    if (_mealTimings != null && _mealTimings!.containsKey(meal)) {
+      final timing = _mealTimings![meal] as Map?;
+      final cutoffStr = timing?['cutoff']?.toString();
+      if (cutoffStr != null && cutoffStr.contains(':')) {
+        return int.tryParse(cutoffStr.split(':')[1]) ?? 0;
+      }
+    }
+    return 0;
+  }
+
   bool get isFinalized {
     if (_selectedMeal == null) return false;
     
@@ -90,13 +116,13 @@ class PreparationPlannerController extends ChangeNotifier {
       return false; // Future date
     }
 
-    int cutoffHour = 0;
-    if (_selectedMeal == 'breakfast') cutoffHour = 7;
-    else if (_selectedMeal == 'lunch') cutoffHour = 10;
-    else if (_selectedMeal == 'dinner') cutoffHour = 19;
-    else return false;
+    final meal = _selectedMeal!.toLowerCase();
+    final cutoffH = _getCutoffHour(meal);
+    final cutoffM = _getCutoffMinute(meal);
 
-    return now.hour >= cutoffHour;
+    if (now.hour > cutoffH) return true;
+    if (now.hour == cutoffH && now.minute >= cutoffM) return true;
+    return false;
   }
   
   String get remainingTimeUntilCutoff {
@@ -104,13 +130,11 @@ class PreparationPlannerController extends ChangeNotifier {
     if (_selectedMeal == null) return '';
     
     final now = DateTime.now();
+    final meal = _selectedMeal!.toLowerCase();
+    final cutoffHour = _getCutoffHour(meal);
+    final cutoffMinute = _getCutoffMinute(meal);
     
-    int cutoffHour = 0;
-    if (_selectedMeal == 'breakfast') cutoffHour = 7;
-    else if (_selectedMeal == 'lunch') cutoffHour = 10;
-    else if (_selectedMeal == 'dinner') cutoffHour = 19;
-    
-    final cutoffDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, cutoffHour, 0);
+    final cutoffDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, cutoffHour, cutoffMinute);
     final diff = cutoffDate.difference(now);
     
     if (diff.inHours > 24) return "Cutoff tomorrow";
@@ -118,10 +142,13 @@ class PreparationPlannerController extends ChangeNotifier {
   }
 
   String get formattedCutoffTime {
-    if (_selectedMeal == 'breakfast') return '07:00 AM';
-    if (_selectedMeal == 'lunch') return '10:00 AM';
-    if (_selectedMeal == 'dinner') return '07:00 PM';
-    return '';
+    if (_selectedMeal == null) return '';
+    final meal = _selectedMeal!.toLowerCase();
+    final h = _getCutoffHour(meal);
+    final m = _getCutoffMinute(meal);
+    final hourOfPeriod = (h == 0 || h == 12) ? 12 : (h % 12);
+    final period = h < 12 ? 'AM' : 'PM';
+    return '${hourOfPeriod.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')} $period';
   }
 
   String generateWhatsAppSummary() {
@@ -171,6 +198,10 @@ _Generated via MealMate Owner App_
         final rawMeals = messDetails['served_meals'];
         if (rawMeals is List) {
           _servedMeals = rawMeals.map((e) => e.toString().toLowerCase()).toList();
+        }
+        final rawTimings = messDetails['meal_timings'];
+        if (rawTimings is Map) {
+          _mealTimings = Map<String, dynamic>.from(rawTimings);
         }
       }
 

@@ -79,6 +79,8 @@ class MemberDashboardController extends ChangeNotifier {
   int get totalMeals => _totalMeals;
   int get attendedMeals => _attendedMeals;
   List<String> get servedMeals => _servedMeals;
+  Map<String, dynamic>? _mealTimings;
+  Map<String, dynamic>? get mealTimings => _mealTimings;
   
   bool isCutoffPassed(DateTime date, String mealType) {
     final now = DateTime.now();
@@ -88,8 +90,22 @@ class MemberDashboardController extends ChangeNotifier {
     if (checkDate.isBefore(today)) return true;
     if (checkDate.isAfter(today)) return false;
     
+    final mealKey = mealType.toLowerCase().trim();
+    if (_mealTimings != null && _mealTimings!.containsKey(mealKey)) {
+      final timing = _mealTimings![mealKey] as Map?;
+      final cutoffStr = timing?['cutoff']?.toString();
+      if (cutoffStr != null && cutoffStr.contains(':')) {
+        final parts = cutoffStr.split(':');
+        final cutoffH = int.tryParse(parts[0]) ?? 0;
+        final cutoffM = int.tryParse(parts[1]) ?? 0;
+        if (now.hour > cutoffH) return true;
+        if (now.hour == cutoffH && now.minute >= cutoffM) return true;
+        return false;
+      }
+    }
+
     final hour = now.hour;
-    switch (mealType.toLowerCase()) {
+    switch (mealKey) {
       case 'breakfast':
         return hour >= 7;
       case 'lunch':
@@ -137,6 +153,9 @@ class MemberDashboardController extends ChangeNotifier {
         _memberName = profile['full_name'] as String?;
         _avatarUrl = profile['avatar_url'] as String?;
         _messName = profile['mess_name'] as String?;
+        _mealTimings = profile['meal_timings'] != null
+            ? Map<String, dynamic>.from(profile['meal_timings'] as Map)
+            : null;
       }
       _todayMenu = results[1] as List<Map<String, dynamic>>? ?? [];
       _tomorrowMenu = results[2] as List<Map<String, dynamic>>? ?? [];
@@ -164,6 +183,9 @@ class MemberDashboardController extends ChangeNotifier {
 
         _profileCreatedAt = DateTime.parse(createdAtStr);
         _servedMeals = List<String>.from(profile['served_meals'] ?? []);
+        _mealTimings = profile['meal_timings'] != null
+            ? Map<String, dynamic>.from(profile['meal_timings'] as Map)
+            : null;
       }
 
       _allSkips = await _attendanceRepo.getMemberSkips();

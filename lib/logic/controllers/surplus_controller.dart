@@ -78,6 +78,9 @@ class SurplusController extends ChangeNotifier {
   /// Planned cooking target from preparation planner (strictly separate from actual cooked).
   int get targetPortions => _currentRecord?.targetPortions ?? 0;
 
+  /// Specific cost per plate logged for this session (Option 2).
+  int? get costPerMeal => _currentRecord?.costPerMeal;
+
   /// Actual portions cooked in the kitchen.
   int get preparedPortions => _currentRecord?.preparedPortions ?? 0;
 
@@ -277,6 +280,7 @@ class SurplusController extends ChangeNotifier {
   Future<bool> recordMealPrep({
     required int preparedPortions,
     required int servedPortions,
+    int? costPerMeal,
   }) async {
     if (_messId.isEmpty) {
       _errorMessage = 'Mess ID is missing. Please ensure your mess profile is active.';
@@ -291,6 +295,11 @@ class SurplusController extends ChangeNotifier {
     if (preparedPortions < servedPortions) {
       _errorMessage =
           'Prepared portions ($preparedPortions) cannot be less than served portions ($servedPortions).';
+      notifyListeners();
+      return false;
+    }
+    if (costPerMeal != null && costPerMeal <= 0) {
+      _errorMessage = 'Cost per meal must be greater than zero.';
       notifyListeners();
       return false;
     }
@@ -309,6 +318,7 @@ class SurplusController extends ChangeNotifier {
         servedPortions: servedPortions,
         targetPortions: _currentRecord?.targetPortions,
         discardedPortions: _currentRecord?.discardedPortions,
+        costPerMeal: costPerMeal ?? _currentRecord?.costPerMeal,
       );
 
       if (_currentRecord != null) {

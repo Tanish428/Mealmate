@@ -90,9 +90,11 @@ class AnalyticsRepository {
       int totalPrepared = 0;
       int totalServed = 0;
       int totalDiscarded = 0;
+      int totalCostLost = 0;
 
       final Map<String, int> servedByDayOfWeek = {};
       final Map<String, int> skipsByMealType = {};
+      final Map<String, int> sessionCostMap = {};
 
       for (final r in prepRows) {
         final row = Map<String, dynamic>.from(r as Map);
@@ -100,18 +102,24 @@ class AnalyticsRepository {
         final prepared = (row['prepared_portions'] as num?)?.toInt() ?? 0;
         final served = (row['served_portions'] as num?)?.toInt() ?? 0;
         final discarded = (row['discarded_portions'] as num?)?.toInt() ?? 0;
+        final sessionCost = (row['cost_per_meal'] as num?)?.toInt() ?? costPerMeal;
 
         totalTarget += target;
         totalPrepared += prepared;
         totalServed += served;
         totalDiscarded += discarded;
+        totalCostLost += discarded * sessionCost;
 
         final rawDate = row['prep_date']?.toString();
-        if (rawDate != null) {
+        final mealType = (row['meal_type']?.toString() ?? '').toLowerCase();
+        if (rawDate != null && mealType.isNotEmpty) {
+          final customCost = (row['cost_per_meal'] as num?)?.toInt();
+          if (customCost != null) {
+            sessionCostMap['$rawDate|$mealType'] = customCost;
+          }
           final parsed = DateTime.tryParse(rawDate);
           if (parsed != null) {
             final dayName = DateFormat('EEEE').format(parsed);
-            final mealType = (row['meal_type']?.toString() ?? '').toLowerCase();
             final key = '$dayName (${mealType.isNotEmpty ? mealType[0].toUpperCase() + mealType.substring(1) : ''})';
             servedByDayOfWeek[key] = (servedByDayOfWeek[key] ?? 0) + served;
           }
@@ -125,6 +133,7 @@ class AnalyticsRepository {
         totalDonated += q;
       }
 
+      int totalCostSavedValue = 0;
       for (final s in skipRows) {
         final row = Map<String, dynamic>.from(s as Map);
         final mealType = (row['meal_type']?.toString() ?? 'Dinner').trim();
@@ -132,11 +141,14 @@ class AnalyticsRepository {
             ? mealType[0].toUpperCase() + mealType.substring(1).toLowerCase()
             : 'Dinner';
         skipsByMealType[normalized] = (skipsByMealType[normalized] ?? 0) + 1;
+
+        final skipDate = row['skip_date']?.toString();
+        final skipMeal = mealType.toLowerCase();
+        final cost = sessionCostMap['$skipDate|$skipMeal'] ?? costPerMeal;
+        totalCostSavedValue += cost;
       }
 
       final ghostMealsPrevented = skipRows.length;
-      final totalCostSavedValue = ghostMealsPrevented * costPerMeal;
-      final totalCostLost = totalDiscarded * costPerMeal;
 
       // Accuracy: ((Prepared - Discarded) / Prepared) * 100
       double prepAccuracy = 100.0;

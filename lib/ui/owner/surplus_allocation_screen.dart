@@ -40,6 +40,7 @@ class _SurplusAllocationView extends StatefulWidget {
 class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
   final TextEditingController _preparedController = TextEditingController();
   final TextEditingController _servedController = TextEditingController();
+  final TextEditingController _sessionCostController = TextEditingController(text: '50');
 
   String? _lastLoadedRecordId;
   String? _lastLoadedMealKey;
@@ -48,6 +49,7 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
   void dispose() {
     _preparedController.dispose();
     _servedController.dispose();
+    _sessionCostController.dispose();
     super.dispose();
   }
 
@@ -62,10 +64,16 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
       if (controller.currentRecord != null) {
         _preparedController.text = controller.preparedPortions.toString();
         _servedController.text = controller.servedPortions.toString();
+        if (controller.currentRecord!.costPerMeal != null) {
+          _sessionCostController.text = controller.currentRecord!.costPerMeal.toString();
+        } else {
+          _sessionCostController.text = '50';
+        }
       } else {
         // Crucial Rule: Do not prefill actual values from the planning target!
         _preparedController.text = '0';
         _servedController.text = '0';
+        _sessionCostController.text = '50';
       }
     }
   }
@@ -570,7 +578,64 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
             ),
           ],
 
-          const SizedBox(height: 20.0),
+          const SizedBox(height: 16.0),
+
+          // Session Baseline Cost per Meal (Option 2)
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          "Cost Baseline (₹/plate)",
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(width: 4.0),
+                        Tooltip(
+                          message: "Per-session procurement cost used for financial ROI & waste tracking",
+                          child: Icon(Icons.info_outline, size: 14, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6.0),
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(10.0),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Text("₹", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                          const SizedBox(width: 8.0),
+                          Expanded(
+                            child: TextField(
+                              controller: _sessionCostController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                hintText: "50",
+                              ),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16.0),
 
           // Live Calculation Display
           Container(
@@ -620,9 +685,11 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
                 : () async {
                     final prep = int.tryParse(_preparedController.text.trim()) ?? 0;
                     final serv = int.tryParse(_servedController.text.trim()) ?? 0;
+                    final cost = int.tryParse(_sessionCostController.text.trim());
                     await controller.recordMealPrep(
                       preparedPortions: prep,
                       servedPortions: serv,
+                      costPerMeal: cost,
                     );
                   },
           ),

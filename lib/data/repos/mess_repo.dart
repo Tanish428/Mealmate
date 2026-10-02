@@ -118,7 +118,7 @@ class MessRepository {
 
       final result = await _dbClient
           .from('messes')
-          .select('id, mess_name, invite_code, served_meals, cost_per_meal')
+          .select('id, mess_name, invite_code, served_meals, cost_per_meal, meal_timings')
           .eq('owner_id', userId)
           .maybeSingle();
 
@@ -144,6 +144,20 @@ class MessRepository {
       throw Exception(e.message);
     } catch (e) {
       throw Exception('An unexpected error occurred while updating the mess name.');
+    }
+  }
+
+  /// Updates meal timings and cutoffs for the mess
+  Future<void> updateMealTimings({required String messId, required Map<String, dynamic> timings}) async {
+    try {
+      await _dbClient
+          .from('messes')
+          .update({'meal_timings': timings})
+          .eq('id', messId);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Failed to update meal timings: $e');
     }
   }
 

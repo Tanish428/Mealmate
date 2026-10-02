@@ -60,6 +60,7 @@ class FakeSurplusRepository implements SurplusRepository {
     required int servedPortions,
     int? targetPortions,
     int? discardedPortions,
+    int? costPerMeal,
   }) async {
     if (preparedPortions < servedPortions) {
       throw ArgumentError('Prepared portions cannot be less than served portions.');
@@ -80,6 +81,7 @@ class FakeSurplusRepository implements SurplusRepository {
       servedPortions: servedPortions,
       discardedPortions: discardedPortions ?? existing?.discardedPortions ?? 0,
       surplusPortions: preparedPortions - servedPortions,
+      costPerMeal: costPerMeal ?? existing?.costPerMeal,
     );
     prepRecords[key] = record;
     return record;
@@ -272,6 +274,11 @@ class FakeMessRepository implements MessRepository {
   @override
   Future<void> updateCostPerMeal({required String messId, required int costPerMeal}) async {
     messData['cost_per_meal'] = costPerMeal;
+  }
+
+  @override
+  Future<void> updateMealTimings({required String messId, required Map<String, dynamic> timings}) async {
+    messData['meal_timings'] = timings;
   }
 
   @override

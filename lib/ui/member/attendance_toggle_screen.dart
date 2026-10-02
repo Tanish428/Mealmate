@@ -62,22 +62,14 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     }
   }
 
-  bool _isMealPeriodEnded(String mealType) {
-    final now = DateTime.now();
-    final hour = now.hour;
-    final minute = now.minute;
-    final time = hour + minute / 60.0;
-    
-    switch (mealType.toLowerCase()) {
-      case 'breakfast':
-        return time >= 9.5; // 9:30 AM
-      case 'lunch':
-        return time >= 14.5; // 2:30 PM
-      case 'dinner':
-        return time >= 21.5; // 9:30 PM
-      default:
-        return true;
-    }
+  String _formatTimeStr(String? timeStr, String fallback) {
+    if (timeStr == null || !timeStr.contains(':')) return fallback;
+    final parts = timeStr.split(':');
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final hourOfPeriod = (h == 0 || h == 12) ? 12 : (h % 12);
+    final period = h < 12 ? 'AM' : 'PM';
+    return '$hourOfPeriod:${m.toString().padLeft(2, '0')} $period';
   }
 
   String _getCutoffBadgeText(DateTime date, String mealType, bool isCutoffPassed) {
@@ -93,22 +85,36 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
       return 'Cutoff Passed';
     }
 
-    double cutoffHour;
-    switch (mealType.toLowerCase()) {
-      case 'breakfast':
-        cutoffHour = 7.0;
-        break;
-      case 'lunch':
-        cutoffHour = 10.0;
-        break;
-      case 'dinner':
-        cutoffHour = 19.0;
-        break;
-      default:
-        cutoffHour = 0.0;
+    int cutoffHour = 0;
+    int cutoffMinute = 0;
+    final mealKey = mealType.toLowerCase().trim();
+    if (_controller.mealTimings != null && _controller.mealTimings!.containsKey(mealKey)) {
+      final timing = _controller.mealTimings![mealKey] as Map?;
+      final cutoffStr = timing?['cutoff']?.toString();
+      if (cutoffStr != null && cutoffStr.contains(':')) {
+        final parts = cutoffStr.split(':');
+        cutoffHour = int.tryParse(parts[0]) ?? 0;
+        cutoffMinute = int.tryParse(parts[1]) ?? 0;
+      }
     }
 
-    final cutoffTime = DateTime(now.year, now.month, now.day, cutoffHour.toInt(), 0);
+    if (cutoffHour == 0) {
+      switch (mealKey) {
+        case 'breakfast':
+          cutoffHour = 7;
+          break;
+        case 'lunch':
+          cutoffHour = 10;
+          break;
+        case 'dinner':
+          cutoffHour = 19;
+          break;
+        default:
+          cutoffHour = 0;
+      }
+    }
+
+    final cutoffTime = DateTime(now.year, now.month, now.day, cutoffHour, cutoffMinute);
     final diff = cutoffTime.difference(now);
     
     if (diff.isNegative) return 'Cutoff Passed';
@@ -349,6 +355,16 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     final badgeText = _getCutoffBadgeText(date, lowerMeal, isCutoffPassed);
     final isTomorrow = badgeText == 'Opens Tomorrow';
 
+    String dynamicTimeRange = timeRange;
+    if (_controller.mealTimings != null && _controller.mealTimings!.containsKey(lowerMeal)) {
+      final timing = _controller.mealTimings![lowerMeal] as Map?;
+      final start = timing?['start']?.toString();
+      final end = timing?['end']?.toString();
+      if (start != null && end != null) {
+        dynamicTimeRange = '${_formatTimeStr(start, '')} - ${_formatTimeStr(end, '')}';
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -398,7 +414,7 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
                         ),
                       ),
                       Text(
-                        timeRange,
+                        dynamicTimeRange,
                         style: TextStyle(
                           color: textGray,
                           fontSize: 12,

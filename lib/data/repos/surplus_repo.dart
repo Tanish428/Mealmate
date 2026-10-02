@@ -55,6 +55,7 @@ class SurplusRepository {
     required int servedPortions,
     int? targetPortions,
     int? discardedPortions,
+    int? costPerMeal,
   }) async {
     if (preparedPortions < servedPortions) {
       throw ArgumentError('Prepared portions ($preparedPortions) cannot be less than served portions ($servedPortions).');
@@ -64,6 +65,9 @@ class SurplusRepository {
     }
     if (discardedPortions != null && discardedPortions < 0) {
       throw ArgumentError('Discarded portions cannot be negative.');
+    }
+    if (costPerMeal != null && costPerMeal <= 0) {
+      throw ArgumentError('Cost per meal must be greater than zero.');
     }
 
     try {
@@ -76,6 +80,7 @@ class SurplusRepository {
         'served_portions': servedPortions,
         if (targetPortions != null) 'target_portions': targetPortions,
         if (discardedPortions != null) 'discarded_portions': discardedPortions,
+        if (costPerMeal != null) 'cost_per_meal': costPerMeal,
       };
 
       final response = await _dbClient
