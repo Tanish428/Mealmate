@@ -168,6 +168,14 @@ class FakeSurplusRepository implements SurplusRepository {
   }
 
   @override
+  Future<void> deletePartner({
+    required String partnerId,
+    required String messId,
+  }) async {
+    partnersList.removeWhere((p) => p.id == partnerId && p.messId == messId);
+  }
+
+  @override
   Future<List<SurplusAllocationModel>> getAllocationsForMeal({
     required String mealPrepRecordId,
   }) async {
@@ -282,7 +290,7 @@ class FakeMessRepository implements MessRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getMessMembers() async => [];
+  Future<List<Map<String, dynamic>>> getMessMembers({String? messId}) async => [];
 }
 
 void main() {
@@ -448,6 +456,35 @@ void main() {
       expect(controller.activeAllocatedPortions, 0);
       expect(controller.availablePortions, 10);
       expect(controller.monthlyDonatedMealsCount, 0);
+    });
+
+    test('Updates and deletes partner organization in SurplusController', () async {
+      await controller.init();
+      final partner = await controller.addPartner(
+        name: 'Feeding India',
+        contactPhone: '+91 98765 00000',
+        contactPerson: 'Ananya Roy',
+        address: 'Sector 5 Hub',
+      );
+      expect(partner, isNotNull);
+      expect(controller.partners.length, 1);
+
+      // Update partner
+      final updateSuccess = await controller.updatePartner(
+        partnerId: partner!.id,
+        name: 'Feeding India - Metro Wing',
+        contactPhone: '+91 98765 11111',
+        contactPerson: 'Ananya Sen',
+        address: 'Sector 10 Hub',
+      );
+      expect(updateSuccess, isTrue);
+      expect(controller.partners.first.name, 'Feeding India - Metro Wing');
+      expect(controller.partners.first.contactPerson, 'Ananya Sen');
+
+      // Delete partner
+      final deleteSuccess = await controller.deletePartner(partnerId: partner.id);
+      expect(deleteSuccess, isTrue);
+      expect(controller.partners, isEmpty);
     });
   });
 

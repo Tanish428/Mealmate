@@ -268,6 +268,36 @@ class SurplusRepository {
     }
   }
 
+  /// Deletes or deactivates a donation partner.
+  /// If historical allocations reference this partner, it deactivates the partner instead (soft delete).
+  Future<void> deletePartner({
+    required String partnerId,
+    required String messId,
+  }) async {
+    try {
+      await _dbClient
+          .from('donation_partners')
+          .delete()
+          .eq('id', partnerId)
+          .eq('mess_id', messId);
+    } on PostgrestException catch (e) {
+      // Code 23503: foreign key constraint violation (allocations exist)
+      if (e.code == '23503' ||
+          e.message.contains('foreign key') ||
+          e.message.contains('violates foreign key constraint')) {
+        await _dbClient
+            .from('donation_partners')
+            .update({'is_active': false})
+            .eq('id', partnerId)
+            .eq('mess_id', messId);
+      } else {
+        throw Exception(e.message);
+      }
+    } catch (e) {
+      throw Exception('Failed to delete donation partner: $e');
+    }
+  }
+
   // ===========================================================================
   // 3. Surplus Allocations
   // Tracks allocation quantity and states (pending, collected, cancelled).
@@ -279,6 +309,7 @@ class SurplusRepository {
   Future<List<SurplusAllocationModel>> getAllocationsForMeal({
     required String mealPrepRecordId,
   }) async {
+    
     try {
       final response = await _dbClient
           .from('surplus_allocations')

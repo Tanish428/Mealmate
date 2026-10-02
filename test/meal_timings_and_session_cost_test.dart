@@ -43,7 +43,7 @@ class MockMessRepository implements MessRepository {
   Future<void> updateCostPerMeal({required String messId, required int costPerMeal}) async {}
 
   @override
-  Future<List<Map<String, dynamic>>> getMessMembers() async => [];
+  Future<List<Map<String, dynamic>>> getMessMembers({String? messId}) async => [];
 }
 
 void main() {

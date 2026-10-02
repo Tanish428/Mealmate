@@ -953,6 +953,8 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
                   partner: partner,
                   availablePortions: controller.availablePortions,
                   onAllocate: () => _showQuickAllocateDialog(context, controller, partner),
+                  onEdit: () => _showEditPartnerDialog(context, controller, partner),
+                  onDelete: () => _showDeletePartnerDialog(context, controller, partner),
                 ),
               )),
       ],
@@ -1142,6 +1144,123 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
               foregroundColor: Colors.white,
             ),
             child: const Text("Register Partner"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditPartnerDialog(BuildContext context, SurplusController controller, DonationPartnerModel partner) {
+    final nameCtrl = TextEditingController(text: partner.name);
+    final contactCtrl = TextEditingController(text: partner.contactPerson ?? '');
+    final phoneCtrl = TextEditingController(text: partner.contactPhone ?? '');
+    final addressCtrl = TextEditingController(text: partner.address ?? '');
+    final notesCtrl = TextEditingController(text: partner.notes ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Edit Donation Partner", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomTextField(
+                controller: nameCtrl,
+                hintText: "Partner Organization Name *",
+                prefixIcon: Icons.business,
+              ),
+              const SizedBox(height: 12.0),
+              CustomTextField(
+                controller: contactCtrl,
+                hintText: "Contact Person (Optional)",
+                prefixIcon: Icons.person_outline,
+              ),
+              const SizedBox(height: 12.0),
+              CustomTextField(
+                controller: phoneCtrl,
+                hintText: "Phone Number (Optional)",
+                prefixIcon: Icons.phone_outlined,
+              ),
+              const SizedBox(height: 12.0),
+              CustomTextField(
+                controller: addressCtrl,
+                hintText: "Address (Optional)",
+                prefixIcon: Icons.location_on_outlined,
+              ),
+              const SizedBox(height: 12.0),
+              CustomTextField(
+                controller: notesCtrl,
+                hintText: "Notes (Optional)",
+                prefixIcon: Icons.notes,
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) {
+                _showNotificationSnackBar(context, "Partner name is required", isError: true);
+                return;
+              }
+              Navigator.pop(ctx);
+              await controller.updatePartner(
+                partnerId: partner.id,
+                name: name,
+                contactPerson: contactCtrl.text.trim().isEmpty ? null : contactCtrl.text.trim(),
+                contactPhone: phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
+                address: addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
+                notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Save Changes"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeletePartnerDialog(BuildContext context, SurplusController controller, DonationPartnerModel partner) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8.0),
+            Text("Delete Partner", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to remove '${partner.name}'?\n\nIf this organization has previous donation records, it will be deactivated to preserve historical audit logs.",
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await controller.deletePartner(partnerId: partner.id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Delete Partner"),
           ),
         ],
       ),
@@ -1642,11 +1761,15 @@ class _PartnerListItem extends StatelessWidget {
   final DonationPartnerModel partner;
   final int availablePortions;
   final VoidCallback onAllocate;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const _PartnerListItem({
     required this.partner,
     required this.availablePortions,
     required this.onAllocate,
+    this.onEdit,
+    this.onDelete,
   });
 
   Future<void> _makePhoneCall(String phone) async {
@@ -1724,19 +1847,52 @@ class _PartnerListItem extends StatelessWidget {
               ],
             ),
           ),
-          if (availablePortions > 0)
-            ElevatedButton(
-              onPressed: onAllocate,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          const SizedBox(width: 8.0),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onEdit != null)
+                    InkWell(
+                      onTap: onEdit,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey.shade600),
+                      ),
+                    ),
+                  if (onDelete != null) ...[
+                    const SizedBox(width: 4.0),
+                    InkWell(
+                      onTap: onDelete,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Icon(Icons.delete_outline, size: 18, color: Colors.red.shade400),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              child: const Text("Allocate", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            ),
+              if (availablePortions > 0) ...[
+                const SizedBox(height: 8.0),
+                ElevatedButton(
+                  onPressed: onAllocate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text("Allocate", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );

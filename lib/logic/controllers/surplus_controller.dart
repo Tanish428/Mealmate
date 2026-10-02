@@ -524,6 +524,81 @@ class SurplusController extends ChangeNotifier {
     }
   }
 
+  /// Updates an existing donation partner's details.
+  Future<bool> updatePartner({
+    required String partnerId,
+    required String name,
+    String? contactPhone,
+    String? contactPerson,
+    String? address,
+    String? notes,
+  }) async {
+    if (name.trim().isEmpty) {
+      _errorMessage = 'Partner name cannot be empty.';
+      notifyListeners();
+      return false;
+    }
+    if (_messId.isEmpty) {
+      _errorMessage = 'Mess ID is missing. Please ensure your mess profile is active.';
+      notifyListeners();
+      return false;
+    }
+
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+
+    try {
+      await _surplusRepo.updatePartner(
+        partnerId: partnerId,
+        messId: _messId,
+        name: name.trim(),
+        contactPhone: contactPhone?.trim(),
+        contactPerson: contactPerson?.trim(),
+        address: address?.trim(),
+        notes: notes?.trim(),
+      );
+
+      await _loadPartners();
+      _successMessage = 'Partner "$name" updated successfully.';
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to update partner: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Deletes or deactivates a donation partner.
+  Future<bool> deletePartner({required String partnerId}) async {
+    if (_messId.isEmpty) {
+      _errorMessage = 'Mess ID is missing. Please ensure your mess profile is active.';
+      notifyListeners();
+      return false;
+    }
+
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+
+    try {
+      await _surplusRepo.deletePartner(
+        partnerId: partnerId,
+        messId: _messId,
+      );
+
+      await _loadPartners();
+      _successMessage = 'Partner removed successfully.';
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to remove partner: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Clears transient user-facing error and success messages.
   void clearMessages() {
     _errorMessage = null;
