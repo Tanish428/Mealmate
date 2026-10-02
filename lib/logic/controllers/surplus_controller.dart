@@ -81,6 +81,17 @@ class SurplusController extends ChangeNotifier {
   /// Actual portions cooked in the kitchen.
   int get preparedPortions => _currentRecord?.preparedPortions ?? 0;
 
+  /// Variance between actual portions cooked and target cooking portions.
+  int get kitchenVariance => preparedPortions - targetPortions;
+
+  /// Human-readable kitchen variance status: 'over', 'under', 'exact', 'unlogged'.
+  String get kitchenVarianceStatus {
+    if (_currentRecord == null || preparedPortions == 0) return 'unlogged';
+    if (kitchenVariance > 0) return 'over';
+    if (kitchenVariance < 0) return 'under';
+    return 'exact';
+  }
+
   /// Actual portions consumed by attending members and guests.
   int get servedPortions => _currentRecord?.servedPortions ?? 0;
 

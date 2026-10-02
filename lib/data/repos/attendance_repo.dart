@@ -2,7 +2,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
 
 class AttendanceRepo {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final SupabaseClient? _client;
+
+  // ignore: prefer_initializing_formals
+  AttendanceRepo({SupabaseClient? client}) : _client = client;
+
+  SupabaseClient get _supabase => _client ?? Supabase.instance.client;
 
   Future<List<SkipModel>> getMemberSkips() async {
     final userId = _supabase.auth.currentUser?.id;

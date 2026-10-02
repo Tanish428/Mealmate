@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/repos/mess_repo.dart';
 import '../../data/repos/attendance_repo.dart';
 import '../../data/repos/menu_repo.dart';
+import '../../data/repos/surplus_repo.dart';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
 
@@ -9,6 +10,7 @@ class PreparationPlannerController extends ChangeNotifier {
   final MessRepository _messRepo;
   final AttendanceRepo _attendanceRepo;
   final MenuRepository _menuRepo;
+  final SurplusRepository _surplusRepo;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -30,9 +32,11 @@ class PreparationPlannerController extends ChangeNotifier {
     MessRepository? messRepo,
     AttendanceRepo? attendanceRepo,
     MenuRepository? menuRepo,
+    SurplusRepository? surplusRepo,
   })  : _messRepo = messRepo ?? MessRepository(),
         _attendanceRepo = attendanceRepo ?? AttendanceRepo(),
-        _menuRepo = menuRepo ?? MenuRepository() {
+        _menuRepo = menuRepo ?? MenuRepository(),
+        _surplusRepo = surplusRepo ?? SurplusRepository() {
     _init();
   }
 
@@ -219,8 +223,26 @@ _Generated via MealMate Owner App_
       } else {
         _menuItemsList = [];
       }
+
+      await syncCookingTarget();
     } catch (e) {
       // Ignore
+    }
+  }
+
+  /// Automatically syncs the calculated final cooking target to meal_prep_records.
+  Future<bool> syncCookingTarget() async {
+    if (_messId.isEmpty || _selectedMeal == null) return false;
+    try {
+      await _surplusRepo.saveCookingTarget(
+        messId: _messId,
+        date: _selectedDate,
+        mealType: _selectedMeal!,
+        targetPortions: finalCookingTarget,
+      );
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -245,17 +267,20 @@ _Generated via MealMate Owner App_
   void incrementExtraPlates() {
     _extraPlates++;
     notifyListeners();
+    syncCookingTarget();
   }
   
   void decrementExtraPlates() {
     if (_extraPlates > 0) {
       _extraPlates--;
       notifyListeners();
+      syncCookingTarget();
     }
   }
   
   void toggleSafetyBuffer(bool value) {
     _safetyBufferEnabled = value;
     notifyListeners();
+    syncCookingTarget();
   }
 }

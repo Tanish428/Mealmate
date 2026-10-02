@@ -28,6 +28,30 @@ class FakeSurplusRepository implements SurplusRepository {
   }
 
   @override
+  Future<MealPrepRecordModel> saveCookingTarget({
+    required String messId,
+    required DateTime date,
+    required String mealType,
+    required int targetPortions,
+  }) async {
+    final key = _recordKey(messId, date, mealType);
+    final existing = prepRecords[key];
+    final record = MealPrepRecordModel(
+      id: existing?.id ?? 'rec-${prepRecords.length + 1}',
+      messId: messId,
+      prepDate: date,
+      mealType: mealType.toLowerCase(),
+      targetPortions: targetPortions,
+      preparedPortions: existing?.preparedPortions ?? 0,
+      servedPortions: existing?.servedPortions ?? 0,
+      discardedPortions: existing?.discardedPortions ?? 0,
+      surplusPortions: (existing?.preparedPortions ?? 0) - (existing?.servedPortions ?? 0),
+    );
+    prepRecords[key] = record;
+    return record;
+  }
+
+  @override
   Future<MealPrepRecordModel> recordMealPrep({
     required String messId,
     required DateTime date,
@@ -244,6 +268,11 @@ class FakeMessRepository implements MessRepository {
 
   @override
   Future<void> updateMessName({required String newName}) async {}
+
+  @override
+  Future<void> updateCostPerMeal({required String messId, required int costPerMeal}) async {
+    messData['cost_per_meal'] = costPerMeal;
+  }
 
   @override
   Future<List<Map<String, dynamic>>> getMessMembers() async => [];

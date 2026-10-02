@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/analytics_model.dart';
 import '../../logic/controllers/analytics_controller.dart';
 import '../common/stat_card.dart';
+import 'surplus_allocation_screen.dart';
 
 class InsightData {
   final IconData icon;
@@ -17,7 +20,9 @@ class InsightData {
 }
 
 class WasteReportsScreen extends StatefulWidget {
-  const WasteReportsScreen({super.key});
+  final AnalyticsController? controller;
+
+  const WasteReportsScreen({super.key, this.controller});
 
   @override
   State<WasteReportsScreen> createState() => _WasteReportsScreenState();
@@ -26,24 +31,57 @@ class WasteReportsScreen extends StatefulWidget {
 class _WasteReportsScreenState extends State<WasteReportsScreen> {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
+    if (widget.controller != null) {
+      return ChangeNotifierProvider<AnalyticsController>.value(
+        value: widget.controller!,
+        child: const _WasteReportsView(),
+      );
+    }
+
+    return ChangeNotifierProvider<AnalyticsController>(
       create: (_) => AnalyticsController(),
-      child: Consumer<AnalyticsController>(
-        builder: (context, controller, _) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFFDFBF7),
-            body: SafeArea(
-              child: controller.isLoading && controller.analytics == null
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
+      child: const _WasteReportsView(),
+    );
+  }
+}
+
+class _WasteReportsView extends StatelessWidget {
+  const _WasteReportsView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AnalyticsController>(
+      builder: (context, controller, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFFDFBF7),
+          body: SafeArea(
+            child: controller.isLoading && controller.analytics == null
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC0392B)),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: controller.loadAnalytics,
+                    color: const Color(0xFFC0392B),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildHeader(context),
-                          const SizedBox(height: 24),
+                          _buildHeader(context, controller),
+                          const SizedBox(height: 20),
                           _buildTimeframeSelector(context, controller),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
+
+                          if (!controller.hasRecordedData && !controller.isLoading) ...[
+                            _buildEmptyStateCard(context),
+                            const SizedBox(height: 20),
+                          ],
+
+                          _buildFinancialRoiCard(context, controller),
+                          const SizedBox(height: 20),
                           _buildHeroMetricsRow(context, controller),
                           const SizedBox(height: 24),
                           _buildTrendChartCard(context, controller),
@@ -55,18 +93,18 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                         ],
                       ),
                     ),
-            ),
-          );
-        },
-      ),
+                  ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AnalyticsController controller) {
     return Row(
       children: [
         InkWell(
-          onTap: () => Navigator.pop(context),
+          onTap: () => Navigator.maybePop(context),
           customBorder: const CircleBorder(),
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -77,29 +115,58 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
             child: Icon(Icons.arrow_back, color: Colors.red.shade700),
           ),
         ),
-        const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: TextSpan(
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                children: [
-                  const TextSpan(text: "Impact & ", style: TextStyle(color: Colors.black)),
-                  TextSpan(text: "Analytics", style: TextStyle(color: Colors.red.shade700)),
-                ],
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  children: [
+                    const TextSpan(text: "Impact & ", style: TextStyle(color: Colors.black)),
+                    TextSpan(text: "Analytics", style: TextStyle(color: Colors.red.shade700)),
+                  ],
+                ),
               ),
+              const SizedBox(height: 2),
+              Text(
+                "Financial ROI & Food Waste Audit",
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        InkWell(
+          onTap: () => _showAuditReportDialog(context, controller),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.shade100),
             ),
-            const SizedBox(height: 4),
-            Text(
-              "See how MealMate reduces waste",
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.description_outlined, size: 16, color: Colors.red.shade700),
+                const SizedBox(width: 4),
+                Text(
+                  "Export Audit",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
                   ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ],
     );
@@ -122,7 +189,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.red.shade700 : Colors.transparent,
                   borderRadius: BorderRadius.circular(30),
@@ -131,6 +198,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                 child: Text(
                   timeframe,
                   style: TextStyle(
+                    fontSize: 13,
                     color: isSelected ? Colors.white : Colors.grey.shade700,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -143,14 +211,245 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
     );
   }
 
+  Widget _buildEmptyStateCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F4F8),
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(color: const Color(0xFFD0DCE5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Color(0xFF2C5E8A), size: 28),
+          const SizedBox(width: 14.0),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "No Meal Prep Recorded Yet",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E3A5F)),
+                ),
+                const SizedBox(height: 2.0),
+                Text(
+                  "Log actual kitchen portions in Surplus Management to track real ROI and waste variance.",
+                  style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade700),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8.0),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SurplusAllocationScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2C5E8A),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+            child: const Text("Log Meal"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFinancialRoiCard(BuildContext context, AnalyticsController controller) {
+    final a = controller.analytics;
+    final currency = NumberFormat('#,##,###');
+    final savings = a != null ? a.totalCostSaved : '₹0';
+    final loss = a != null ? '₹${currency.format(a.totalCostLost)}' : '₹0';
+    final recovery = a != null ? '${a.surplusRecoveryRate.toStringAsFixed(1)}%' : '100%';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Financial ROI & Savings",
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  "@ ₹${controller.costPerMeal}/meal",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              // Savings Container
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.savings_outlined, size: 16, color: Colors.green.shade800),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Net Money Saved",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        savings,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.green.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Prevented ghost meals",
+                        style: TextStyle(fontSize: 10, color: Colors.green.shade800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Loss Container
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.trending_down, size: 16, color: Colors.orange.shade900),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Food Waste Loss",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        loss,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Discarded unserved food",
+                        style: TextStyle(fontSize: 10, color: Colors.orange.shade800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // Surplus Recovery Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.volunteer_activism_outlined, size: 16, color: Colors.green.shade700),
+                    const SizedBox(width: 6),
+                    const Text(
+                      "Surplus Recovery Rate",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                Text(
+                  recovery,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeroMetricsRow(BuildContext context, AnalyticsController controller) {
     final analyticsData = controller.analytics;
     final String prepAccuracy = analyticsData != null
         ? "${analyticsData.prepAccuracyPercentage.toStringAsFixed(1)}%"
-        : "96.4%";
+        : "100%";
     final String ghostMeals = analyticsData != null
         ? "${analyticsData.ghostMealsPrevented}"
-        : "362";
+        : "0";
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,7 +458,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
           child: StatCard(
             metric: prepAccuracy,
             title: "Prep Accuracy",
-            subtitle: "You are cooking almost exactly what is needed.",
+            subtitle: "Actual cooked vs planned portions.",
             icon: Icons.track_changes,
             iconColor: Colors.red.shade700,
             iconBackgroundColor: Colors.red.shade50,
@@ -170,6 +469,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
           child: StatCard(
             metric: ghostMeals,
             title: "Ghost Meals Prevented",
+            subtitle: "Members opted out before cutoff.",
             icon: Icons.no_meals,
             iconColor: Colors.orange.shade800,
             iconBackgroundColor: Colors.orange.shade50,
@@ -207,7 +507,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                   children: [
                     Text(
                       "Food Preparation Trend",
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                     ),
@@ -235,7 +535,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text("Standard Capacity",
+                      Text("Target Capacity",
                           style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
                     ],
                   ),
@@ -251,7 +551,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text("Actual Prepared",
+                      Text("Actual Cooked",
                           style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
                     ],
                   ),
@@ -272,7 +572,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
       InsightData(
         icon: Icons.group_off,
         title: "Average Daily Opt-outs",
-        trailingText: analyticsData?.averageOptOuts ?? "8 members / meal",
+        trailingText: analyticsData?.averageOptOuts ?? "0 members / day",
       ),
       InsightData(
         icon: Icons.restaurant_menu,
@@ -281,7 +581,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
       ),
       InsightData(
         icon: Icons.calendar_today,
-        title: "Busiest Day",
+        title: "Peak Service Demand",
         trailingText: analyticsData?.busiestDay ?? "Sunday (Lunch)",
       ),
     ];
@@ -304,7 +604,7 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
         children: [
           Text(
             "Key Insights",
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
@@ -380,15 +680,106 @@ class _WasteReportsScreenState extends State<WasteReportsScreen> {
                   const TextSpan(text: "Great job! ", style: TextStyle(fontWeight: FontWeight.bold)),
                   const TextSpan(text: "You saved approximately "),
                   TextSpan(
-                    text: analyticsData?.totalFoodSaved ?? "128 kg",
+                    text: analyticsData?.totalFoodSaved ?? "0 kg",
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  TextSpan(text: " of food $timeframePeriod."),
+                  TextSpan(text: " of food $timeframePeriod from landfill."),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAuditReportDialog(BuildContext context, AnalyticsController controller) {
+    final auditText = controller.generateAuditSummary();
+    final csvText = controller.generateCsvReport();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 650),
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.assessment_outlined, color: Colors.red.shade700),
+                      const SizedBox(width: 8.0),
+                      const Text(
+                        "Executive Audit Report",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      auditText,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 11, height: 1.4),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: csvText));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('CSV report copied to clipboard!')),
+                        );
+                      },
+                      icon: const Icon(Icons.table_chart_outlined, size: 16),
+                      label: const Text("Copy CSV", style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                  const SizedBox(width: 10.0),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: auditText));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Executive Audit Summary copied to clipboard!')),
+                        );
+                      },
+                      icon: const Icon(Icons.copy, size: 16),
+                      label: const Text("Copy Summary", style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade700,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

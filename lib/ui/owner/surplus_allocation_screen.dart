@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -358,22 +359,31 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
                         color: Color(0xFF1E3A5F),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD6E4F0),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: Text(
-                        controller.targetPortions > 0
-                            ? "${controller.targetPortions} portions"
-                            : "No target",
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3A5F),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD6E4F0),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: Text(
+                            controller.targetPortions > 0
+                                ? "${controller.targetPortions} target"
+                                : "No target",
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E3A5F),
+                            ),
+                          ),
                         ),
-                      ),
+                        if (controller.targetPortions > 0 && controller.preparedPortions > 0) ...[
+                          const SizedBox(width: 6.0),
+                          _buildVarianceBadge(controller),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -386,6 +396,43 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVarianceBadge(SurplusController controller) {
+    final variance = controller.kitchenVariance;
+    final status = controller.kitchenVarianceStatus;
+
+    if (status == 'unlogged') return const SizedBox.shrink();
+
+    final Color bgColor;
+    final Color textColor;
+    final String label;
+
+    if (status == 'over') {
+      bgColor = Colors.amber.shade100;
+      textColor = Colors.amber.shade900;
+      label = "+$variance Over-prep";
+    } else if (status == 'under') {
+      bgColor = Colors.blue.shade100;
+      textColor = Colors.blue.shade900;
+      label = "$variance Under-prep";
+    } else {
+      bgColor = Colors.green.shade100;
+      textColor = Colors.green.shade900;
+      label = "Exact Match";
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor),
       ),
     );
   }
@@ -891,6 +938,8 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
                 child: _AllocationHistoryCard(
                   allocation: alloc,
                   isUpdating: controller.isUpdatingStatus,
+                  onDispatch: () => _dispatchViaWhatsApp(context, alloc, controller),
+                  onViewGatePass: () => _showGatePassDialog(context, alloc, controller),
                   onMarkCollected: () => controller.updateAllocationStatus(
                     allocationId: alloc.id,
                     status: SurplusAllocationModel.statusCollected,
@@ -1162,6 +1211,172 @@ class _SurplusAllocationViewState extends State<_SurplusAllocationView> {
               child: const Text("Allocate Surplus"),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _dispatchViaWhatsApp(
+    BuildContext context,
+    SurplusAllocationModel allocation,
+    SurplusController controller,
+  ) async {
+    final partner = controller.partners.where((p) => p.id == allocation.partnerId).firstOrNull;
+    final partnerName = allocation.partnerName ?? partner?.name ?? 'Donation Partner';
+    final phone = partner?.contactPhone?.replaceAll(RegExp(r'[^0-9+]'), '') ?? '';
+    final messName = controller.messName.isNotEmpty ? controller.messName : 'Campus Mess';
+    final meal = controller.selectedMeal.toUpperCase();
+    final dateStr = DateFormat('MMM dd, yyyy').format(controller.selectedDate);
+    final token = 'MM-${allocation.id.substring(0, math.min(8, allocation.id.length)).toUpperCase()}';
+
+    final message = '''
+*MEALMATE 🍲 SURPLUS DONATION DISPATCH*
+
+Dear $partnerName,
+Surplus food is packaged and ready for pickup:
+
+*Mess:* $messName
+*Meal:* $meal ($dateStr)
+*Allocated Quantity:* ${allocation.quantity} portions
+${partner?.address != null && partner!.address!.isNotEmpty ? "*Location:* ${partner.address}\n" : ""}*Gate Pass Token:* $token
+
+Please arrive before service cutoff. Show this Gate Pass token at the campus gate.
+'''.trim();
+
+    final encoded = Uri.encodeComponent(message);
+    final String urlString = phone.isNotEmpty
+        ? 'https://wa.me/$phone?text=$encoded'
+        : 'https://wa.me/?text=$encoded';
+
+    final uri = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          _showNotificationSnackBar(context, 'Could not launch WhatsApp. Verification Token: $token');
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _showNotificationSnackBar(context, 'Error launching WhatsApp dispatch: token $token');
+      }
+    }
+  }
+
+  void _showGatePassDialog(
+    BuildContext context,
+    SurplusAllocationModel allocation,
+    SurplusController controller,
+  ) {
+    final partner = controller.partners.where((p) => p.id == allocation.partnerId).firstOrNull;
+    final partnerName = allocation.partnerName ?? partner?.name ?? 'Registered Partner';
+    final messName = controller.messName.isNotEmpty ? controller.messName : 'Campus Mess';
+    final token = 'MM-${allocation.id.substring(0, math.min(8, allocation.id.length)).toUpperCase()}';
+    final meal = controller.selectedMeal.toUpperCase();
+    final dateStr = DateFormat('EEE, MMM dd, yyyy').format(controller.selectedDate);
+    final timeStr = DateFormat('h:mm a').format(allocation.createdAt);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Icon(Icons.verified_user, color: Colors.red.shade700, size: 20),
+                      ),
+                      const SizedBox(width: 10.0),
+                      const Text(
+                        "CAMPUS GATE PASS",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.8),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 24.0),
+              Container(
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("PASS TOKEN: $token", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 1.0)),
+                    const SizedBox(height: 4.0),
+                    Text("Facility: $messName", style: const TextStyle(fontSize: 12)),
+                    Text("Date & Meal: $dateStr • $meal", style: const TextStyle(fontSize: 12)),
+                    Text("Allocated To: $partnerName", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text("Authorized Quantity: ${allocation.quantity} Portions", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+                    Text("Issued At: $timeStr", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  color: allocation.isCompletedDonation ? Colors.green.shade50 : Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(color: allocation.isCompletedDonation ? Colors.green.shade200 : Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      allocation.isCompletedDonation ? Icons.check_circle : Icons.schedule,
+                      color: allocation.isCompletedDonation ? Colors.green.shade800 : Colors.amber.shade900,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        allocation.isCompletedDonation
+                            ? "Verified & Collected. Authorized for exit."
+                            : "Awaiting Arrival. Security: Verify vehicle / ID upon entry.",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: allocation.isCompletedDonation ? Colors.green.shade900 : Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20.0),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                ),
+                child: const Text("Close Pass"),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1469,12 +1684,16 @@ class _AllocationHistoryCard extends StatelessWidget {
   final bool isUpdating;
   final VoidCallback onMarkCollected;
   final VoidCallback onCancel;
+  final VoidCallback? onDispatch;
+  final VoidCallback? onViewGatePass;
 
   const _AllocationHistoryCard({
     required this.allocation,
     required this.isUpdating,
     required this.onMarkCollected,
     required this.onCancel,
+    this.onDispatch,
+    this.onViewGatePass,
   });
 
   @override
@@ -1570,17 +1789,39 @@ class _AllocationHistoryCard extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
             ),
           ],
-          if (isPending) ...[
-            const SizedBox(height: 12.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
+          const SizedBox(height: 12.0),
+          Row(
+            children: [
+              if (onViewGatePass != null)
+                TextButton.icon(
+                  onPressed: onViewGatePass,
+                  icon: const Icon(Icons.badge_outlined, size: 14),
+                  label: const Text("Gate Pass", style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                    minimumSize: Size.zero,
+                  ),
+                ),
+              if (isPending && onDispatch != null) ...[
+                const SizedBox(width: 4.0),
+                TextButton.icon(
+                  onPressed: onDispatch,
+                  icon: Icon(Icons.send_rounded, size: 14, color: Colors.green.shade800),
+                  label: Text("WhatsApp", style: TextStyle(fontSize: 12, color: Colors.green.shade800, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                    minimumSize: Size.zero,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              if (isPending) ...[
                 OutlinedButton(
                   onPressed: isUpdating ? null : onCancel,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.grey.shade700,
                     side: BorderSide(color: Colors.grey.shade400),
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                     minimumSize: Size.zero,
                   ),
                   child: const Text("Cancel", style: TextStyle(fontSize: 12)),
@@ -1593,13 +1834,13 @@ class _AllocationHistoryCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade800,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                     minimumSize: Size.zero,
                   ),
                 ),
               ],
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );

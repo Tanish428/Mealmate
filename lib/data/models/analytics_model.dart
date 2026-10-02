@@ -64,6 +64,33 @@ class AnalyticsModel {
   /// Total mess cost saved during this timeframe (e.g., "₹3,800", "₹14,200").
   final String totalCostSaved;
 
+  /// Numeric mess cost saved in INR.
+  final int totalCostSavedValue;
+
+  /// Numeric financial loss in INR due to discarded unserved food.
+  final int totalCostLost;
+
+  /// Surplus recovery rate: % of surplus portions successfully collected by donation partners.
+  final double surplusRecoveryRate;
+
+  /// Aggregate target portions planned.
+  final int totalTargetPortions;
+
+  /// Aggregate actual portions cooked.
+  final int totalPreparedPortions;
+
+  /// Aggregate actual portions served.
+  final int totalServedPortions;
+
+  /// Aggregate discarded portions.
+  final int totalDiscardedPortions;
+
+  /// Aggregate portions collected by donation partners.
+  final int totalDonatedPortions;
+
+  /// Total number of meal sessions recorded in this timeframe.
+  final int totalMealSessions;
+
   /// Average daily or per-meal opt-outs.
   final String averageOptOuts;
 
@@ -78,6 +105,15 @@ class AnalyticsModel {
     this.timeframe = 'This Month',
     this.totalFoodSaved = '128 kg',
     this.totalCostSaved = '₹14,200',
+    this.totalCostSavedValue = 14200,
+    this.totalCostLost = 0,
+    this.surplusRecoveryRate = 100.0,
+    this.totalTargetPortions = 0,
+    this.totalPreparedPortions = 0,
+    this.totalServedPortions = 0,
+    this.totalDiscardedPortions = 0,
+    this.totalDonatedPortions = 0,
+    this.totalMealSessions = 0,
     this.averageOptOuts = '8 members / meal',
     this.weeklyTrend = const [],
   });
@@ -90,6 +126,15 @@ class AnalyticsModel {
     String? timeframe,
     String? totalFoodSaved,
     String? totalCostSaved,
+    int? totalCostSavedValue,
+    int? totalCostLost,
+    double? surplusRecoveryRate,
+    int? totalTargetPortions,
+    int? totalPreparedPortions,
+    int? totalServedPortions,
+    int? totalDiscardedPortions,
+    int? totalDonatedPortions,
+    int? totalMealSessions,
     String? averageOptOuts,
     List<WeeklyTrendPoint>? weeklyTrend,
   }) {
@@ -102,6 +147,16 @@ class AnalyticsModel {
       timeframe: timeframe ?? this.timeframe,
       totalFoodSaved: totalFoodSaved ?? this.totalFoodSaved,
       totalCostSaved: totalCostSaved ?? this.totalCostSaved,
+      totalCostSavedValue: totalCostSavedValue ?? this.totalCostSavedValue,
+      totalCostLost: totalCostLost ?? this.totalCostLost,
+      surplusRecoveryRate: surplusRecoveryRate ?? this.surplusRecoveryRate,
+      totalTargetPortions: totalTargetPortions ?? this.totalTargetPortions,
+      totalPreparedPortions: totalPreparedPortions ?? this.totalPreparedPortions,
+      totalServedPortions: totalServedPortions ?? this.totalServedPortions,
+      totalDiscardedPortions:
+          totalDiscardedPortions ?? this.totalDiscardedPortions,
+      totalDonatedPortions: totalDonatedPortions ?? this.totalDonatedPortions,
+      totalMealSessions: totalMealSessions ?? this.totalMealSessions,
       averageOptOuts: averageOptOuts ?? this.averageOptOuts,
       weeklyTrend: weeklyTrend ?? this.weeklyTrend,
     );
@@ -119,6 +174,15 @@ class AnalyticsModel {
           timeframe == other.timeframe &&
           totalFoodSaved == other.totalFoodSaved &&
           totalCostSaved == other.totalCostSaved &&
+          totalCostSavedValue == other.totalCostSavedValue &&
+          totalCostLost == other.totalCostLost &&
+          surplusRecoveryRate == other.surplusRecoveryRate &&
+          totalTargetPortions == other.totalTargetPortions &&
+          totalPreparedPortions == other.totalPreparedPortions &&
+          totalServedPortions == other.totalServedPortions &&
+          totalDiscardedPortions == other.totalDiscardedPortions &&
+          totalDonatedPortions == other.totalDonatedPortions &&
+          totalMealSessions == other.totalMealSessions &&
           averageOptOuts == other.averageOptOuts &&
           listEquals(weeklyTrend, other.weeklyTrend);
 
@@ -131,6 +195,15 @@ class AnalyticsModel {
       timeframe.hashCode ^
       totalFoodSaved.hashCode ^
       totalCostSaved.hashCode ^
+      totalCostSavedValue.hashCode ^
+      totalCostLost.hashCode ^
+      surplusRecoveryRate.hashCode ^
+      totalTargetPortions.hashCode ^
+      totalPreparedPortions.hashCode ^
+      totalServedPortions.hashCode ^
+      totalDiscardedPortions.hashCode ^
+      totalDonatedPortions.hashCode ^
+      totalMealSessions.hashCode ^
       averageOptOuts.hashCode ^
       weeklyTrend.hashCode;
 }

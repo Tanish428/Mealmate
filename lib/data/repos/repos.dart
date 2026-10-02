@@ -1,3 +1,4 @@
+export 'analytics_repo.dart';
 export 'attendance_repo.dart';
 export 'broadcast_repo.dart';
 export 'feedback_repo.dart';

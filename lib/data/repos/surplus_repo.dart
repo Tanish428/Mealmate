@@ -117,6 +117,46 @@ class SurplusRepository {
     }
   }
 
+  /// Saves or updates the planned target cooking portions for a meal.
+  /// If the record does not exist yet, it creates it with prepared=0, served=0, discarded=0.
+  Future<MealPrepRecordModel> saveCookingTarget({
+    required String messId,
+    required DateTime date,
+    required String mealType,
+    required int targetPortions,
+  }) async {
+    if (targetPortions < 0) {
+      throw ArgumentError('Target portions cannot be negative.');
+    }
+
+    try {
+      final dateStr = _formatDate(date);
+      final existing = await getMealPrepRecord(messId: messId, date: date, mealType: mealType);
+
+      final payload = {
+        'mess_id': messId,
+        'prep_date': dateStr,
+        'meal_type': mealType.toLowerCase(),
+        'target_portions': targetPortions,
+        'prepared_portions': existing?.preparedPortions ?? 0,
+        'served_portions': existing?.servedPortions ?? 0,
+        'discarded_portions': existing?.discardedPortions ?? 0,
+      };
+
+      final response = await _dbClient
+          .from('meal_prep_records')
+          .upsert(payload, onConflict: 'mess_id,prep_date,meal_type')
+          .select()
+          .single();
+
+      return MealPrepRecordModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Failed to save cooking target: $e');
+    }
+  }
+
   // ===========================================================================
   // 2. Donation Partners
   // Real registered partners belonging to the specific mess.
