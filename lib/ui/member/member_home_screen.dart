@@ -229,7 +229,19 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.storefront, size: 14, color: primaryRed),
+                      if (_dashboardController.messLogoUrl != null && _dashboardController.messLogoUrl!.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: Image.network(
+                            _dashboardController.messLogoUrl!,
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(Icons.storefront, size: 14, color: primaryRed),
+                          ),
+                        )
+                      else
+                        Icon(Icons.storefront, size: 14, color: primaryRed),
                       const SizedBox(width: 4.0),
                       Flexible(
                         child: Text(
@@ -292,7 +304,7 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
   }
 
   Widget _buildHeroCard(Color primaryRed, Color textDark, Color textGray, List<Map<String, dynamic>> menuDataList) {
-    final nextMealInfo = _dashboardController.getCurrentOrNextMeal();
+    final nextMealInfo = _dashboardController.getMealInfo(_selectedMeal);
     final mealTitle = nextMealInfo.$1;
     final timeString = nextMealInfo.$2;
     final statusText = nextMealInfo.$3;
@@ -307,8 +319,10 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
     final mealKey = mealTitle.replaceAll(' (Tomorrow)', '').toLowerCase();
     final selectedMenu = menuDataList.where((m) => m['meal_type'] == mealKey).toList();
     
+    String? imageUrl;
     List<Map<String, dynamic>> items = [];
     if (selectedMenu.isNotEmpty) {
+      imageUrl = selectedMenu.first['image_url']?.toString();
       final rawItems = selectedMenu.first['items'] as List<dynamic>? ?? [];
       for (var val in rawItems) {
         String name = val.toString();
@@ -340,156 +354,168 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20.0),
       ),
-      padding: const EdgeInsets.all(16.0),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Text(
-                      mealTitle,
-                      style: TextStyle(
-                        color: textDark,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8.0),
-                    Icon(Icons.circle, size: 4, color: Colors.grey.shade400),
-                    const SizedBox(width: 8.0),
-                    Expanded(
-                      child: Text(
-                        timeString,
-                        style: TextStyle(
-                          color: textGray,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Image.network(
+              imageUrl,
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 140,
+                color: Colors.grey.shade200,
+                child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10.0,
-                  vertical: 6.0,
-                ),
-                decoration: BoxDecoration(
-                  color: activeStatusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20.0),
-                ),
-                child: Row(
-                  children: [
-                    Icon(statusIcon, size: 8, color: activeStatusColor),
-                    const SizedBox(width: 6.0),
-                    Text(
-                      statusText,
-                      style: TextStyle(
-                        color: activeStatusColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16.0),
-          Text(
-            'Today\'s Menu',
-            style: TextStyle(
-              color: textDark,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 140,
+                  color: Colors.grey.shade100,
+                  child: const Center(child: CircularProgressIndicator()),
+                );
+              },
             ),
-          ),
-          const SizedBox(height: 12.0),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: Text(
-                "No menu published for today yet.",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic,
-                  color: textGray,
-                ),
-              ),
-            )
-          else
-            Row(
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Text(
+                            mealTitle,
+                            style: TextStyle(
+                              color: textDark,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8.0),
+                          Icon(Icons.circle, size: 4, color: Colors.grey.shade400),
+                          const SizedBox(width: 8.0),
+                          Expanded(
+                            child: Text(
+                              timeString,
+                              style: TextStyle(
+                                color: textGray,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0,
+                        vertical: 6.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: activeStatusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(statusIcon, size: 8, color: activeStatusColor),
+                          const SizedBox(width: 6.0),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              color: activeStatusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16.0),
+                Text(
+                  'Menu',
+                  style: TextStyle(
+                    color: textDark,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12.0),
+                if (items.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    child: Text(
+                      "No menu published for today yet.",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        color: textGray,
+                      ),
+                    ),
+                  )
+                else
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: items
                         .map<Widget>((item) => _buildMenuItem(item['name'], item['isVeg'], item['hasDessert'], textDark))
                         .toList(),
                   ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Image.asset(
-                    'assets/images/meal.png',
-                    height: 100,
-                    fit: BoxFit.contain,
+                const SizedBox(height: 16.0),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _navigateToAttendance,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
+                    decoration: BoxDecoration(
+                      color: green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2.0),
+                          decoration: BoxDecoration(
+                            color: green,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.check, size: 16, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12.0),
+                        Text(
+                          'You are marked as ',
+                          style: TextStyle(
+                            color: textDark,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          'Attending',
+                          style: TextStyle(
+                            color: green,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.chevron_right, size: 18, color: green),
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ),
-          const SizedBox(height: 16.0),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _navigateToAttendance,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 12.0,
-              ),
-              decoration: BoxDecoration(
-                color: green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(2.0),
-                    decoration: BoxDecoration(
-                      color: green,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.check, size: 16, color: Colors.white),
-                  ),
-                  const SizedBox(width: 12.0),
-                  Text(
-                    'You are marked as ',
-                    style: TextStyle(
-                      color: textDark,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    'Attending',
-                    style: TextStyle(
-                      color: green,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.chevron_right, size: 18, color: green),
-                ],
-              ),
             ),
           ),
         ],

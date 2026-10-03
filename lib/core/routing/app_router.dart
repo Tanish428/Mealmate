@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 // Auth
+import '../../ui/auth/splash_screen.dart';
 import '../../ui/auth/login_screen.dart';
 import '../../ui/auth/signup_screen.dart';
 import '../../ui/auth/role_selection_screen.dart';
@@ -34,8 +35,12 @@ final GlobalKey<NavigatorState> memberHomeNavigatorKey = GlobalKey<NavigatorStat
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/login',
+  initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
     // Auth Flow
     GoRoute(
       path: '/login',

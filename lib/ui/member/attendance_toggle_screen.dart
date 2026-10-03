@@ -307,6 +307,19 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     );
   }
 
+  String _formatTimeStr(String time, String defaultSuffix) {
+    try {
+      final parts = time.split(':');
+      if (parts.length < 2) return time;
+      final h = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final dt = DateTime(2020, 1, 1, h, m);
+      return "${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
+    } catch (_) {
+      return time;
+    }
+  }
+
   Widget _buildMealCard(DateTime date, String mealType, String timeRange, IconData icon, Color iconColor) {
     final lowerMeal = mealType.toLowerCase();
     final bool isSkipped = _controller.isMealSkipped(date, lowerMeal);
@@ -318,8 +331,8 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     final isTomorrow = badgeText == 'Opens Tomorrow';
 
     String dynamicTimeRange = timeRange;
-    if (_controller.mealTimings != null && _controller.mealTimings!.containsKey(lowerMeal)) {
-      final timing = _controller.mealTimings![lowerMeal] as Map?;
+    if (_controller.mealTimings.containsKey(lowerMeal)) {
+      final timing = _controller.mealTimings[lowerMeal] as Map?;
       final start = timing?['start']?.toString();
       final end = timing?['end']?.toString();
       if (start != null && end != null) {

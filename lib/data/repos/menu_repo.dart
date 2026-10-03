@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MenuRepository {
@@ -11,6 +12,7 @@ class MenuRepository {
     required DateTime date,
     required String mealType,
     required List<String> items,
+    String? imageUrl,
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not logged in');
@@ -27,16 +29,51 @@ class MenuRepository {
 
     final dateStr = date.toIso8601String().split("T")[0];
 
+    final Map<String, dynamic> upsertData = {
+      'mess_id': messId,
+      'menu_date': dateStr,
+      'meal_type': mealType.toLowerCase(),
+      'items': items,
+    };
+    
+    if (imageUrl != null) {
+      upsertData['image_url'] = imageUrl;
+    }
+
     // Upsert the menu
     await _client.from('menus').upsert(
-      {
-        'mess_id': messId,
-        'menu_date': dateStr,
-        'meal_type': mealType.toLowerCase(),
-        'items': items,
-      },
+      upsertData,
       onConflict: 'mess_id, menu_date, meal_type',
     );
+  }
+
+  Future<String?> uploadMealPhoto({
+    required String date,
+    required String mealType,
+    required dynamic file, // Use dynamic to allow both File and PlatformFile depending on web/mobile, but keeping it simple for io.File
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    final profileResponse = await _client
+        .from('profiles')
+        .select('mess_id')
+        .eq('id', user.id)
+        .single();
+
+    final messId = profileResponse['mess_id'];
+    if (messId == null) throw Exception('No mess_id found for user');
+
+    final fileName = '${date}_${mealType.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final filePath = 'meal_photos/$messId/$fileName';
+
+    await _client.storage.from('meal_images').upload(
+      filePath,
+      file,
+      fileOptions: const FileOptions(contentType: 'image/jpeg'),
+    );
+
+    return _client.storage.from('meal_images').getPublicUrl(filePath);
   }
 
   Future<List<Map<String, dynamic>>> getTodayMenu() async {

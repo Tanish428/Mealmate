@@ -129,6 +129,14 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
     }).toList();
   }
 
+  String? _getMealImageUrl(String mealType) {
+    final meal = _currentMenuData.firstWhere(
+      (m) => m['meal_type'].toString().toLowerCase() == mealType.toLowerCase(),
+      orElse: () => {},
+    );
+    return meal['image_url']?.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,6 +168,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                     Icons.wb_sunny_outlined,
                     Colors.orange,
                     _getMealItems('breakfast'),
+                    _getMealImageUrl('breakfast'),
                   ),
                   const SizedBox(height: 20.0),
                 ],
@@ -170,6 +179,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                     Icons.restaurant,
                     primaryRed,
                     _getMealItems('lunch'),
+                    _getMealImageUrl('lunch'),
                   ),
                   const SizedBox(height: 20.0),
                 ],
@@ -180,6 +190,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                     Icons.nightlight_round,
                     Colors.grey.shade700,
                     _getMealItems('dinner'),
+                    _getMealImageUrl('dinner'),
                   ),
                   const SizedBox(height: 24.0),
                 ],
@@ -407,6 +418,7 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
     IconData icon,
     Color iconColor,
     List<Map<String, dynamic>> items,
+    String? imageUrl,
   ) {
     List<Map<String, dynamic>> filteredItems = items.where((item) {
       if (_selectedFilter == 'Pure Veg') return item['isVeg'] == true;
@@ -426,49 +438,70 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16.0),
+      clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 20),
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Image.network(
+              imageUrl,
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 140,
+                color: Colors.grey.shade200,
+                child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
               ),
-              const SizedBox(width: 12.0),
-              Text(
-                title,
-                style: TextStyle(
-                  color: textDark,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 140,
+                  color: Colors.grey.shade100,
+                  child: const Center(child: CircularProgressIndicator()),
+                );
+              },
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: iconColor, size: 20),
+                    ),
+                    const SizedBox(width: 12.0),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: textDark,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        time,
+                        style: TextStyle(
+                          color: textGray,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8.0),
-              Expanded(
-                child: Text(
-                  time,
-                  style: TextStyle(
-                    color: textGray,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16.0),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: filteredItems.isEmpty
+                const SizedBox(height: 16.0),
+                filteredItems.isEmpty
                     ? Text(
                         'No items for this filter',
                         style: TextStyle(color: textGray, fontSize: 13),
@@ -482,16 +515,8 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
                             )
                             .toList(),
                       ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Image.asset(
-                  'assets/images/meal.png',
-                  height: 110,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

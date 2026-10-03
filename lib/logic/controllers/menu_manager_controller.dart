@@ -68,6 +68,20 @@ class MenuManagerController extends ChangeNotifier {
     'dinner': [],
   };
 
+  // Meal images by slot (network URLs)
+  final Map<String, String?> _slotImages = {
+    'breakfast': null,
+    'lunch': null,
+    'dinner': null,
+  };
+
+  // Newly selected image files by slot (to be uploaded on save)
+  final Map<String, dynamic> _slotImageFiles = {
+    'breakfast': null,
+    'lunch': null,
+    'dinner': null,
+  };
+
   MenuManagerController({MenuRepository? menuRepo, MessRepository? messRepo, bool autoLoad = true})
       : _menuRepo = menuRepo ?? MenuRepository(),
         _messRepo = messRepo ?? MessRepository() {
@@ -129,8 +143,25 @@ class MenuManagerController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   List<DishItem> get currentSlotDishes => _slotDishes[_selectedMealSlot] ?? [];
+  String? get currentSlotImage => _slotImages[_selectedMealSlot];
+  dynamic get currentSlotImageFile => _slotImageFiles[_selectedMealSlot];
 
   List<DishItem> getDishesForSlot(String slot) => _slotDishes[slot.toLowerCase()] ?? [];
+  String? getImageForSlot(String slot) => _slotImages[slot.toLowerCase()];
+  dynamic getImageFileForSlot(String slot) => _slotImageFiles[slot.toLowerCase()];
+
+  void setSlotImageFile(dynamic file, {String? slot}) {
+    final targetSlot = (slot ?? _selectedMealSlot).toLowerCase();
+    _slotImageFiles[targetSlot] = file;
+    notifyListeners();
+  }
+
+  void clearSlotImage({String? slot}) {
+    final targetSlot = (slot ?? _selectedMealSlot).toLowerCase();
+    _slotImages[targetSlot] = null;
+    _slotImageFiles[targetSlot] = null;
+    notifyListeners();
+  }
 
   void setSelectedDate(DateTime date) {
     if (_selectedDate.year != date.year ||
@@ -199,10 +230,19 @@ class MenuManagerController extends ChangeNotifier {
       _slotDishes['breakfast'] = [];
       _slotDishes['lunch'] = [];
       _slotDishes['dinner'] = [];
+      
+      _slotImages['breakfast'] = null;
+      _slotImages['lunch'] = null;
+      _slotImages['dinner'] = null;
+      
+      _slotImageFiles['breakfast'] = null;
+      _slotImageFiles['lunch'] = null;
+      _slotImageFiles['dinner'] = null;
 
       for (final menuRecord in menuDataList) {
         final mealType = menuRecord['meal_type']?.toString().toLowerCase();
         if (mealType != null && _slotDishes.containsKey(mealType)) {
+          _slotImages[mealType] = menuRecord['image_url']?.toString();
           final rawItems = menuRecord['items'] as List<dynamic>? ?? [];
           final dishList = <DishItem>[];
 
@@ -242,6 +282,9 @@ class MenuManagerController extends ChangeNotifier {
   Future<void> saveMenuForSlot(String slot) async {
     final targetSlot = slot.toLowerCase();
     final dishes = _slotDishes[targetSlot] ?? [];
+    
+    // Only save if there are dishes, OR if we are explicitly saving an empty list (which is handled well)
+    // Actually we should always save if requested.
 
     _isSaving = true;
     _errorMessage = null;
@@ -249,11 +292,24 @@ class MenuManagerController extends ChangeNotifier {
 
     try {
       final itemsToSave = dishes.map((d) => jsonEncode(d.toMap())).toList();
+      String? uploadedImageUrl = _slotImages[targetSlot];
+
+      if (_slotImageFiles[targetSlot] != null) {
+        final dateStr = _selectedDate.toIso8601String().split("T")[0];
+        uploadedImageUrl = await _menuRepo.uploadMealPhoto(
+          date: dateStr,
+          mealType: targetSlot,
+          file: _slotImageFiles[targetSlot],
+        );
+        _slotImages[targetSlot] = uploadedImageUrl;
+        _slotImageFiles[targetSlot] = null;
+      }
 
       await _menuRepo.addMenu(
         date: _selectedDate,
         mealType: targetSlot,
         items: itemsToSave,
+        imageUrl: uploadedImageUrl,
       );
     } catch (e) {
       _errorMessage = 'Failed to save menu: $e';
@@ -270,13 +326,29 @@ class MenuManagerController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final dateStr = _selectedDate.toIso8601String().split("T")[0];
+      
       for (final entry in _slotDishes.entries) {
         if (entry.value.isNotEmpty) {
+          final targetSlot = entry.key;
+          String? uploadedImageUrl = _slotImages[targetSlot];
+
+          if (_slotImageFiles[targetSlot] != null) {
+            uploadedImageUrl = await _menuRepo.uploadMealPhoto(
+              date: dateStr,
+              mealType: targetSlot,
+              file: _slotImageFiles[targetSlot],
+            );
+            _slotImages[targetSlot] = uploadedImageUrl;
+            _slotImageFiles[targetSlot] = null;
+          }
+
           final itemsToSave = entry.value.map((d) => jsonEncode(d.toMap())).toList();
           await _menuRepo.addMenu(
             date: _selectedDate,
-            mealType: entry.key,
+            mealType: targetSlot,
             items: itemsToSave,
+            imageUrl: uploadedImageUrl,
           );
         }
       }

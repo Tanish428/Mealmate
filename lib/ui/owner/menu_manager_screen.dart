@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../logic/controllers/menu_manager_controller.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../data/repos/menu_repo.dart';
 import '../../data/repos/mess_repo.dart';
@@ -46,6 +48,8 @@ class MealSlotModel {
   final bool isAvailable;
   final IconData iconData;
   final List<DishModel> dishes;
+  final String? imageUrl;
+  final dynamic imageFile; // File object
 
   MealSlotModel({
     required this.id,
@@ -54,6 +58,8 @@ class MealSlotModel {
     required this.isAvailable,
     required this.iconData,
     required this.dishes,
+    this.imageUrl,
+    this.imageFile,
   });
 
   MealSlotModel copyWith({
@@ -63,6 +69,8 @@ class MealSlotModel {
     bool? isAvailable,
     IconData? iconData,
     List<DishModel>? dishes,
+    String? imageUrl,
+    dynamic imageFile,
   }) {
     return MealSlotModel(
       id: id ?? this.id,
@@ -71,6 +79,8 @@ class MealSlotModel {
       isAvailable: isAvailable ?? this.isAvailable,
       iconData: iconData ?? this.iconData,
       dishes: dishes ?? this.dishes,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageFile: imageFile ?? this.imageFile,
     );
   }
 }
@@ -165,14 +175,18 @@ List<MealSlotModel> _createEmptySlots(List<String> servedMeals, Map<String, dyna
       }
       
       Map<String, dynamic>? mealTimings; if (messDetails != null && messDetails['meal_timings'] != null) { mealTimings = messDetails['meal_timings'] as Map<String, dynamic>?; } final emptySlots = _createEmptySlots(servedMeals, mealTimings);
-      for (var slot in emptySlots) {
+      for (int i = 0; i < emptySlots.length; i++) {
+        var slot = emptySlots[i];
         final mealTypeStr = slot.title.toLowerCase();
         final meal = dbMenu.firstWhere(
           (m) => m['meal_type'].toString().toLowerCase() == mealTypeStr,
           orElse: () => {'items': []},
         );
+        
+        String? imageUrl = meal['image_url']?.toString();
         final rawItems = meal['items'] as List<dynamic>? ?? [];
-        slot.dishes.addAll(rawItems.asMap().entries.map((entry) {
+        
+        final List<DishModel> loadedDishes = rawItems.asMap().entries.map((entry) {
           final val = entry.value;
           String name = val.toString();
           bool isVeg = true;
@@ -195,7 +209,9 @@ List<MealSlotModel> _createEmptySlots(List<String> servedMeals, Map<String, dyna
             isVegetarian: isVeg,
             hasDessert: hasDessert,
           );
-        }));
+        }).toList();
+        
+        emptySlots[i] = slot.copyWith(dishes: loadedDishes, imageUrl: imageUrl);
       }
       
       if (mounted) {
@@ -215,6 +231,122 @@ List<MealSlotModel> _createEmptySlots(List<String> servedMeals, Map<String, dyna
   }
 
   List<MealSlotModel> get _mealSlots => _currentSlots;
+
+  Future<void> _pickImageForSlot(MealSlotModel slot) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await showModalBottomSheet<XFile?>(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a photo'),
+                onTap: () async {
+                  final img = await picker.pickImage(source: ImageSource.camera);
+                  if (!context.mounted) return;
+                  Navigator.pop(context, img);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from gallery'),
+                onTap: () async {
+                  final img = await picker.pickImage(source: ImageSource.gallery);
+                  if (!context.mounted) return;
+                  Navigator.pop(context, img);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (image != null) {
+      setState(() {
+        final index = _currentSlots.indexWhere((s) => s.id == slot.id);
+        if (index != -1) {
+          _currentSlots[index] = _currentSlots[index].copyWith(imageFile: File(image.path));
+        }
+      });
+      
+      try {
+        final dateStr = _selectedDate.toIso8601String().split("T")[0];
+        final uploadedImageUrl = await MenuRepository().uploadMealPhoto(
+          date: dateStr,
+          mealType: slot.title,
+          file: File(image.path),
+        );
+        
+        setState(() {
+          final index = _currentSlots.indexWhere((s) => s.id == slot.id);
+          if (index != -1) {
+            final old = _currentSlots[index];
+            _currentSlots[index] = MealSlotModel(
+              id: old.id,
+              title: old.title,
+              timeRange: old.timeRange,
+              isAvailable: old.isAvailable,
+              iconData: old.iconData,
+              dishes: old.dishes,
+              imageUrl: uploadedImageUrl,
+              imageFile: null,
+            );
+          }
+        });
+        
+        final updatedSlot = _currentSlots.firstWhere((s) => s.id == slot.id);
+        final items = updatedSlot.dishes.map((d) => jsonEncode({'name': d.name, 'isVegetarian': d.isVegetarian, 'hasDessert': d.hasDessert})).toList();
+        
+        await MenuRepository().addMenu(
+          date: _selectedDate,
+          mealType: updatedSlot.title,
+          items: items,
+          imageUrl: uploadedImageUrl,
+        );
+        
+      } catch (e) {
+        // Handle error
+      }
+    }
+  }
+
+  Future<void> _clearImageForSlot(MealSlotModel slot) async {
+    // We update state directly to clear the image.
+    setState(() {
+      final index = _currentSlots.indexWhere((s) => s.id == slot.id);
+      if (index != -1) {
+        final old = _currentSlots[index];
+        _currentSlots[index] = MealSlotModel(
+          id: old.id,
+          title: old.title,
+          timeRange: old.timeRange,
+          isAvailable: old.isAvailable,
+          iconData: old.iconData,
+          dishes: old.dishes,
+          imageUrl: null,
+          imageFile: null,
+        );
+      }
+    });
+    
+    try {
+        final updatedSlot = _currentSlots.firstWhere((s) => s.id == slot.id);
+        final items = updatedSlot.dishes.map((d) => jsonEncode({'name': d.name, 'isVegetarian': d.isVegetarian, 'hasDessert': d.hasDessert})).toList();
+        
+        await MenuRepository().addMenu(
+          date: _selectedDate,
+          mealType: updatedSlot.title,
+          items: items,
+          imageUrl: null, // explicit null
+        );
+    } catch (e) {
+      // Handle error
+    }
+  }
 
   void _onDateSelected(DateTime date) {
     setState(() {
@@ -821,6 +953,8 @@ List<MealSlotModel> _createEmptySlots(List<String> servedMeals, Map<String, dyna
                     onAddDish: () => _showAddOrEditDishDialog(slot: slot),
                     onEditDish: (dish) => _showAddOrEditDishDialog(slot: slot, existingDish: dish),
                     onDeleteDish: (dish) => _confirmDeleteDish(slot: slot, dish: dish),
+                    onPickImage: () => _pickImageForSlot(slot),
+                    onClearImage: () => _clearImageForSlot(slot),
                   );
                 },
               ),
@@ -986,6 +1120,8 @@ class _MealCard extends StatelessWidget {
   final VoidCallback onAddDish;
   final ValueChanged<DishModel> onEditDish;
   final ValueChanged<DishModel> onDeleteDish;
+  final VoidCallback? onPickImage;
+  final VoidCallback? onClearImage;
 
   const _MealCard({
     required this.slot,
@@ -993,6 +1129,8 @@ class _MealCard extends StatelessWidget {
     required this.onAddDish,
     required this.onEditDish,
     required this.onDeleteDish,
+    this.onPickImage,
+    this.onClearImage,
   });
 
   @override
@@ -1075,6 +1213,98 @@ class _MealCard extends StatelessWidget {
             ],
           ),
           
+          if (slot.isAvailable) ...[
+            const SizedBox(height: 16.0),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Meal Photo (Optional)",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Add a photo to make the menu more appetizing.",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (slot.imageFile != null || (slot.imageUrl != null && slot.imageUrl!.isNotEmpty))
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: slot.imageFile != null
+                              ? Image.file(slot.imageFile as File, fit: BoxFit.cover)
+                              : Image.network(slot.imageUrl!, fit: BoxFit.cover),
+                        ),
+                      ),
+                      Positioned(
+                        top: -8,
+                        right: -8,
+                        child: InkWell(
+                          onTap: onClearImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                            ),
+                            child: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  InkWell(
+                    onTap: onPickImage,
+                    borderRadius: BorderRadius.circular(8),
+                    child: CustomPaint(
+                      painter: _DashedBorderPainter(color: Colors.grey.shade400),
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_a_photo_outlined, size: 20, color: Colors.grey.shade600),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Add Photo",
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+
           if (slot.isAvailable && slot.dishes.isNotEmpty) ...[
             const SizedBox(height: 16.0),
             const Divider(height: 1),
@@ -1150,27 +1380,6 @@ class _DishListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Thumbnail
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: dish.isVegetarian ? Colors.green.shade50 : Colors.red.shade50,
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: dish.imageUrl != null && dish.imageUrl!.isNotEmpty
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.network(dish.imageUrl!, fit: BoxFit.cover),
-                )
-              : Icon(
-                  Icons.restaurant_menu,
-                  color: dish.isVegetarian ? Colors.green.shade700 : Colors.red.shade700,
-                  size: 20,
-                ),
-        ),
-        const SizedBox(width: 12.0),
-        
         // Veg/Non-Veg Indicator
         Container(
           width: 14,
@@ -1193,7 +1402,7 @@ class _DishListItem extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8.0),
+        const SizedBox(width: 12.0),
         
         // Dish Name & Optional Tag
         Expanded(

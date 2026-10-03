@@ -3,6 +3,7 @@ class MenuModel {
   final String messId;
   final DateTime date;
   final String? mealType;
+  final String? imageUrl;
   final List<dynamic> items;
 
   // Legacy full-day meal item lists
@@ -15,6 +16,7 @@ class MenuModel {
     required this.messId,
     required this.date,
     this.mealType,
+    this.imageUrl,
     this.items = const [],
     this.breakfastItems = const [],
     this.lunchItems = const [],
@@ -30,6 +32,7 @@ class MenuModel {
     String? messId,
     DateTime? date,
     String? mealType,
+    String? imageUrl,
     List<dynamic>? items,
     List<Map<String, dynamic>>? breakfastItems,
     List<Map<String, dynamic>>? lunchItems,
@@ -41,6 +44,7 @@ class MenuModel {
       messId: messId ?? this.messId,
       date: date ?? this.date,
       mealType: mealType ?? this.mealType,
+      imageUrl: imageUrl ?? this.imageUrl,
       items: items ?? this.items,
       breakfastItems: breakfastItems ?? this.breakfastItems,
       lunchItems: lunchItems ?? this.lunchItems,
@@ -54,6 +58,7 @@ class MenuModel {
       'mess_id': messId,
       'menu_date': menuDate,
       if (mealType != null) 'meal_type': mealType,
+      if (imageUrl != null) 'image_url': imageUrl,
       'items': items,
       // Legacy compatibility keys
       'menuId': id,
@@ -98,6 +103,7 @@ class MenuModel {
       messId: (map['mess_id'] ?? map['messId'] ?? '').toString(),
       date: parsedDate,
       mealType: (map['meal_type'] ?? map['mealType'])?.toString(),
+      imageUrl: (map['image_url'] ?? map['imageUrl'])?.toString(),
       items: parsedItems,
       breakfastItems: parseMapList(map['breakfastItems']),
       lunchItems: parseMapList(map['lunchItems']),

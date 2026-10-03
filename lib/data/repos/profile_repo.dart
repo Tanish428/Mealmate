@@ -79,10 +79,12 @@ class ProfileRepository {
       String messName = 'Not Assigned';
       List<String> servedMeals = [];
       Map<String, dynamic> mealTimings = {};
+      String? messLogoUrl;
+
       if (profileResult['mess_id'] != null) {
         final messResult = await _client
             .from('messes')
-            .select('mess_name, served_meals, meal_timings')
+            .select('mess_name, served_meals, meal_timings, owner_id')
             .eq('id', profileResult['mess_id'])
             .maybeSingle();
         if (messResult != null) {
@@ -90,6 +92,16 @@ class ProfileRepository {
           servedMeals = List<String>.from(messResult['served_meals'] ?? []);
           if (messResult['meal_timings'] != null && messResult['meal_timings'] is Map) {
             mealTimings = Map<String, dynamic>.from(messResult['meal_timings'] as Map);
+          }
+          if (messResult['owner_id'] != null) {
+            final ownerProfile = await _client
+                .from('profiles')
+                .select('avatar_url')
+                .eq('id', messResult['owner_id'])
+                .maybeSingle();
+            if (ownerProfile != null) {
+              messLogoUrl = ownerProfile['avatar_url']?.toString();
+            }
           }
         }
       }
@@ -114,6 +126,7 @@ class ProfileRepository {
         'served_meals': servedMeals,
         'avatar_url': profileResult['avatar_url'],
         'meal_timings': mealTimings,
+        'mess_logo_url': messLogoUrl,
       };
     } catch (e) {
       return null;
