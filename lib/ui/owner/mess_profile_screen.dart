@@ -8,6 +8,7 @@ import '../common/custom_button.dart';
 import '../../data/services/supabase_auth_service.dart';
 import '../../data/repos/mess_repo.dart';
 import '../../data/repos/profile_repo.dart';
+import '../../data/models/mess_model.dart';
 
 class MessProfileScreen extends StatefulWidget {
   const MessProfileScreen({super.key});
@@ -23,6 +24,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   File? _avatarFile;
   String? _avatarUrl;
   bool _isUploading = false;
+  Map<String, dynamic>? _messData;
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     if (mounted) {
       setState(() {
         if (data != null) {
+          _messData = data;
           _nameController.text = data['mess_name'] ?? 'Your Mess';
           _inviteCode = data['invite_code'] ?? 'N/A';
         } else {
@@ -363,8 +366,18 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16.0),
-          onTap: () {
-            context.go('/owner/profile/timings');
+          onTap: () async {
+            if (_messData != null) {
+              final messModel = MessModel.fromMap(_messData!);
+              final updatedTimings = await context.push<Map<String, dynamic>>('/owner/meal-timings', extra: messModel);
+              if (updatedTimings != null && mounted) {
+                setState(() {
+                  _messData!['meal_timings'] = updatedTimings;
+                });
+              }
+            } else {
+              context.push('/owner/profile/timings');
+            }
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),

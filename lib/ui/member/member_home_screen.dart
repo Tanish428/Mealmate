@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'feedback_screen.dart';
@@ -61,41 +62,6 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
     super.dispose();
   }
 
-  final Map<String, dynamic> _mealData = {
-    'Breakfast': {
-      'time': '7:00 AM – 9:00 AM',
-      'items': ['Idli Sambar', 'Poha', 'Tea/Coffee', 'Bread Jam', 'Banana'],
-      'statusText': 'Attended',
-      'statusColor': const Color(0xFF4A9054),
-      'statusIcon': Icons.check_circle,
-    },
-    'Lunch': {
-      'time': '12:30 PM – 2:30 PM',
-      'items': [
-        'Paneer Butter Masala',
-        'Dal Tadka',
-        'Steamed Rice',
-        'Fresh Chapatis',
-        'Mixed Salad',
-      ],
-      'statusText': 'Serving Now',
-      'statusColor': const Color(0xFFC74330),
-      'statusIcon': Icons.circle,
-    },
-    'Dinner': {
-      'time': '7:00 PM – 9:00 PM',
-      'items': [
-        'Aloo Gobi',
-        'Dal Makhani',
-        'Jeera Rice',
-        'Roti',
-        'Gulab Jamun',
-      ],
-      'statusText': 'Upcoming',
-      'statusColor': Colors.grey,
-      'statusIcon': Icons.schedule,
-    },
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -326,12 +292,21 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
   }
 
   Widget _buildHeroCard(Color primaryRed, Color textDark, Color textGray, List<Map<String, dynamic>> menuDataList) {
-    final Color green = const Color(0xFF4A9054);
-    final data = _mealData[_selectedMeal]!;
-    final bool isServing = data['statusText'] == 'Serving Now';
-    final Color statusColor = isServing ? green : data['statusColor'];
+    final nextMealInfo = _dashboardController.getCurrentOrNextMeal();
+    final mealTitle = nextMealInfo.$1;
+    final timeString = nextMealInfo.$2;
+    final statusText = nextMealInfo.$3;
+    final statusColor = nextMealInfo.$4;
+    final statusIcon = nextMealInfo.$5;
 
-    final selectedMenu = menuDataList.where((m) => m['meal_type'] == _selectedMeal.toLowerCase()).toList();
+    final Color green = const Color(0xFF4A9054);
+    final bool isServing = statusText == 'Serving Now';
+    final Color activeStatusColor = isServing ? green : statusColor;
+
+    // Use the actual selected meal from the controller to find the menu
+    final mealKey = mealTitle.replaceAll(' (Tomorrow)', '').toLowerCase();
+    final selectedMenu = menuDataList.where((m) => m['meal_type'] == mealKey).toList();
+    
     List<Map<String, dynamic>> items = [];
     if (selectedMenu.isNotEmpty) {
       final rawItems = selectedMenu.first['items'] as List<dynamic>? ?? [];
@@ -353,6 +328,11 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
         }
         items.add({'name': name, 'isVeg': isVeg, 'hasDessert': hasDessert});
       }
+    } else {
+      // Fallback if no menu is set
+      for (var name in nextMealInfo.$6) {
+        items.add({'name': name, 'isVeg': true, 'hasDessert': false});
+      }
     }
 
     return Container(
@@ -371,7 +351,7 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
                 child: Row(
                   children: [
                     Text(
-                      _selectedMeal,
+                      mealTitle,
                       style: TextStyle(
                         color: textDark,
                         fontSize: 18,
@@ -383,7 +363,7 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
                     const SizedBox(width: 8.0),
                     Expanded(
                       child: Text(
-                        data['time'],
+                        timeString,
                         style: TextStyle(
                           color: textGray,
                           fontSize: 12,
@@ -401,17 +381,17 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
                   vertical: 6.0,
                 ),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
+                  color: activeStatusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20.0),
                 ),
                 child: Row(
                   children: [
-                    Icon(data['statusIcon'], size: 8, color: statusColor),
+                    Icon(statusIcon, size: 8, color: activeStatusColor),
                     const SizedBox(width: 6.0),
                     Text(
-                      data['statusText'],
+                      statusText,
                       style: TextStyle(
-                        color: statusColor,
+                        color: activeStatusColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -612,7 +592,7 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
               if (meal == 'breakfast') {
                 return _buildTimelineCard(
                   title: 'Breakfast',
-                  time: '7:00 AM – 9:00 AM',
+time: _dashboardController.getFormattedMealTime('breakfast'),
                   icon: Icons.wb_sunny_outlined,
                   iconColor: Colors.orange,
                   statusText: 'Attended',
@@ -625,7 +605,7 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
               } else if (meal == 'lunch') {
                 return _buildTimelineCard(
                   title: 'Lunch',
-                  time: '12:30 PM – 2:30 PM',
+time: _dashboardController.getFormattedMealTime('lunch'),
                   icon: Icons.restaurant,
                   iconColor: primaryRed,
                   statusText: 'Serving Now',
@@ -639,7 +619,7 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
               } else {
                 return _buildTimelineCard(
                   title: 'Dinner',
-                  time: '7:00 PM – 9:00 PM',
+time: _dashboardController.getFormattedMealTime('dinner'),
                   icon: Icons.nightlight_round,
                   iconColor: Colors.grey.shade500,
                   statusText: 'Upcoming',

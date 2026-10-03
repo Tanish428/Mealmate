@@ -62,15 +62,6 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     }
   }
 
-  String _formatTimeStr(String? timeStr, String fallback) {
-    if (timeStr == null || !timeStr.contains(':')) return fallback;
-    final parts = timeStr.split(':');
-    final h = int.tryParse(parts[0]) ?? 0;
-    final m = int.tryParse(parts[1]) ?? 0;
-    final hourOfPeriod = (h == 0 || h == 12) ? 12 : (h % 12);
-    final period = h < 12 ? 'AM' : 'PM';
-    return '$hourOfPeriod:${m.toString().padLeft(2, '0')} $period';
-  }
 
   String _getCutoffBadgeText(DateTime date, String mealType, bool isCutoffPassed) {
     final now = DateTime.now();
@@ -81,47 +72,18 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
       return 'Opens Tomorrow';
     }
 
-    if (isCutoffPassed) {
-      return 'Cutoff Passed';
+    final cutoffTime = _controller.getCutoffDateTime(date, mealType);
+    if (cutoffTime == null) {
+      return isCutoffPassed ? 'Cutoff Passed' : 'Opt-out open';
     }
 
-    int cutoffHour = 0;
-    int cutoffMinute = 0;
-    final mealKey = mealType.toLowerCase().trim();
-    if (_controller.mealTimings != null && _controller.mealTimings!.containsKey(mealKey)) {
-      final timing = _controller.mealTimings![mealKey] as Map?;
-      final cutoffStr = timing?['cutoff']?.toString();
-      if (cutoffStr != null && cutoffStr.contains(':')) {
-        final parts = cutoffStr.split(':');
-        cutoffHour = int.tryParse(parts[0]) ?? 0;
-        cutoffMinute = int.tryParse(parts[1]) ?? 0;
-      }
-    }
-
-    if (cutoffHour == 0) {
-      switch (mealKey) {
-        case 'breakfast':
-          cutoffHour = 7;
-          break;
-        case 'lunch':
-          cutoffHour = 10;
-          break;
-        case 'dinner':
-          cutoffHour = 19;
-          break;
-        default:
-          cutoffHour = 0;
-      }
-    }
-
-    final cutoffTime = DateTime(now.year, now.month, now.day, cutoffHour, cutoffMinute);
-    final diff = cutoffTime.difference(now);
+    final formattedCutoff = DateFormat('h:mm a').format(cutoffTime);
     
-    if (diff.isNegative) return 'Cutoff Passed';
+    if (isCutoffPassed || now.isAfter(cutoffTime) || now.isAtSameMomentAs(cutoffTime)) {
+      return 'Cutoff passed at $formattedCutoff';
+    }
 
-    final h = diff.inHours;
-    final m = diff.inMinutes.remainder(60);
-    return 'Locks in ${h}h ${m}m';
+    return 'Opt-out closes at $formattedCutoff';
   }
 
   @override
@@ -164,15 +126,15 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
                     _buildSectionHeader('Today', DateFormat('EEE, d MMM yyyy').format(today)),
                     const SizedBox(height: 16.0),
                     if (showTodayBreakfast) ...[
-                      _buildMealCard(today, 'Breakfast', '7:30 AM - 9:30 AM', Icons.wb_sunny_outlined, Colors.orange),
+                      _buildMealCard(today, 'Breakfast', _controller.getFormattedMealTime('breakfast'), Icons.wb_sunny_outlined, Colors.orange),
                       const SizedBox(height: 16.0),
                     ],
                     if (showTodayLunch) ...[
-                      _buildMealCard(today, 'Lunch', '12:30 PM - 2:30 PM', Icons.restaurant, primaryRed),
+                      _buildMealCard(today, 'Lunch', _controller.getFormattedMealTime('lunch'), Icons.restaurant, primaryRed),
                       const SizedBox(height: 16.0),
                     ],
                     if (showTodayDinner) ...[
-                      _buildMealCard(today, 'Dinner', '7:30 PM - 9:30 PM', Icons.nightlight_round, Colors.indigo),
+                      _buildMealCard(today, 'Dinner', _controller.getFormattedMealTime('dinner'), Icons.nightlight_round, Colors.indigo),
                       const SizedBox(height: 16.0),
                     ],
                     const SizedBox(height: 8.0),
@@ -181,15 +143,15 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
                   _buildSectionHeader('Tomorrow', DateFormat('EEE, d MMM yyyy').format(tomorrow)),
                   const SizedBox(height: 16.0),
                   if (servedMeals.contains('breakfast')) ...[
-                    _buildMealCard(tomorrow, 'Breakfast', '7:30 AM - 9:30 AM', Icons.wb_sunny_outlined, Colors.orange),
+                    _buildMealCard(tomorrow, 'Breakfast', _controller.getFormattedMealTime('breakfast'), Icons.wb_sunny_outlined, Colors.orange),
                     const SizedBox(height: 16.0),
                   ],
                   if (servedMeals.contains('lunch')) ...[
-                    _buildMealCard(tomorrow, 'Lunch', '12:30 PM - 2:30 PM', Icons.restaurant, primaryRed),
+                    _buildMealCard(tomorrow, 'Lunch', _controller.getFormattedMealTime('lunch'), Icons.restaurant, primaryRed),
                     const SizedBox(height: 16.0),
                   ],
                   if (servedMeals.contains('dinner')) ...[
-                    _buildMealCard(tomorrow, 'Dinner', '7:30 PM - 9:30 PM', Icons.nightlight_round, Colors.indigo),
+                    _buildMealCard(tomorrow, 'Dinner', _controller.getFormattedMealTime('dinner'), Icons.nightlight_round, Colors.indigo),
                     const SizedBox(height: 24.0),
                   ],
                 ],

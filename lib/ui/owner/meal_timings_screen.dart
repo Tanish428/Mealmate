@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/models/mess_model.dart';
 import '../../data/repos/mess_repo.dart';
 
 class MealTimingsScreen extends StatefulWidget {
   final MessRepository? messRepo;
+  final MessModel? currentMess;
 
-  const MealTimingsScreen({super.key, this.messRepo});
+  const MealTimingsScreen({super.key, this.messRepo, this.currentMess});
 
   @override
   State<MealTimingsScreen> createState() => _MealTimingsScreenState();
@@ -46,16 +48,13 @@ class _MealTimingsScreenState extends State<MealTimingsScreen> {
 
   Future<void> _loadTimings() async {
     try {
-      final details = await _messRepo.getOwnerMessDetails();
-      if (details != null && mounted) {
-        _messId = details['id']?.toString() ?? '';
-        final rawMeals = details['served_meals'];
-        if (rawMeals is List && rawMeals.isNotEmpty) {
-          _servedMeals = rawMeals.map((e) => e.toString().toLowerCase()).toList();
+      if (widget.currentMess != null) {
+        _messId = widget.currentMess!.id;
+        if (widget.currentMess!.servedMeals.isNotEmpty) {
+          _servedMeals = widget.currentMess!.servedMeals.map((e) => e.toLowerCase()).toList();
         }
-
-        final rawTimings = details['meal_timings'];
-        if (rawTimings is Map) {
+        final rawTimings = widget.currentMess!.mealTimings;
+        if (rawTimings != null) {
           for (final entry in rawTimings.entries) {
             final meal = entry.key.toString().toLowerCase();
             final timing = entry.value as Map?;
@@ -68,6 +67,34 @@ class _MealTimingsScreenState extends State<MealTimingsScreen> {
               }
               if (timing['cutoff'] != null) {
                 _cutoffTimes[meal] = _parseTimeOfDay(timing['cutoff'].toString(), _cutoffTimes[meal]!);
+              }
+            }
+          }
+        }
+      } else {
+        final details = await _messRepo.getOwnerMessDetails();
+        if (details != null && mounted) {
+          _messId = details['id']?.toString() ?? '';
+          final rawMeals = details['served_meals'];
+          if (rawMeals is List && rawMeals.isNotEmpty) {
+            _servedMeals = rawMeals.map((e) => e.toString().toLowerCase()).toList();
+          }
+
+          final rawTimings = details['meal_timings'];
+          if (rawTimings is Map) {
+            for (final entry in rawTimings.entries) {
+              final meal = entry.key.toString().toLowerCase();
+              final timing = entry.value as Map?;
+              if (timing != null) {
+                if (timing['start'] != null) {
+                  _startTimes[meal] = _parseTimeOfDay(timing['start'].toString(), _startTimes[meal]!);
+                }
+                if (timing['end'] != null) {
+                  _endTimes[meal] = _parseTimeOfDay(timing['end'].toString(), _endTimes[meal]!);
+                }
+                if (timing['cutoff'] != null) {
+                  _cutoffTimes[meal] = _parseTimeOfDay(timing['cutoff'].toString(), _cutoffTimes[meal]!);
+                }
               }
             }
           }
@@ -175,6 +202,7 @@ class _MealTimingsScreenState extends State<MealTimingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Meal timings updated successfully!')),
         );
+        context.pop(timings);
       }
     } catch (e) {
       if (mounted) {

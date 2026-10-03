@@ -78,7 +78,7 @@ class ProfileRepository {
 
       String messName = 'Not Assigned';
       List<String> servedMeals = [];
-      Map<String, dynamic>? mealTimings;
+      Map<String, dynamic> mealTimings = {};
       if (profileResult['mess_id'] != null) {
         final messResult = await _client
             .from('messes')
@@ -88,9 +88,9 @@ class ProfileRepository {
         if (messResult != null) {
           messName = messResult['mess_name'] as String;
           servedMeals = List<String>.from(messResult['served_meals'] ?? []);
-          mealTimings = messResult['meal_timings'] != null
-              ? Map<String, dynamic>.from(messResult['meal_timings'] as Map)
-              : null;
+          if (messResult['meal_timings'] != null && messResult['meal_timings'] is Map) {
+            mealTimings = Map<String, dynamic>.from(messResult['meal_timings'] as Map);
+          }
         }
       }
 

@@ -2,13 +2,12 @@ import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MessRepository {
-  final SupabaseClient? _client;
+  final SupabaseClient _client;
 
-  // ignore: prefer_initializing_formals
   MessRepository({SupabaseClient? client})
-      : _client = client;
+      : _client = client ?? Supabase.instance.client;
 
-  SupabaseClient get _dbClient => _client ?? Supabase.instance.client;
+  SupabaseClient get _dbClient => _client;
 
   /// Helper to generate a 6-character uppercase alphanumeric string
   String _generateInviteCode() {
@@ -26,25 +25,37 @@ class MessRepository {
   /// and returns the invite code.
   Future<String> createMess({required String messName, required List<String> servedMeals}) async {
     try {
-      final userId = _dbClient.auth.currentUser?.id;
+      final userId = _client.auth.currentUser?.id;
       if (userId == null) {
         throw Exception('User is not authenticated.');
       }
 
       final inviteCode = _generateInviteCode();
 
+      final Map<String, dynamic> initialMealTimings = {};
+      if (servedMeals.contains('breakfast')) {
+        initialMealTimings['breakfast'] = {"start": "07:30", "end": "09:30", "cutoff": "07:00"};
+      }
+      if (servedMeals.contains('lunch')) {
+        initialMealTimings['lunch'] = {"start": "12:30", "end": "14:30", "cutoff": "10:00"};
+      }
+      if (servedMeals.contains('dinner')) {
+        initialMealTimings['dinner'] = {"start": "19:30", "end": "21:30", "cutoff": "19:00"};
+      }
+
       // Insert mess and select the newly generated UUID
-      final response = await _dbClient.from('messes').insert({
+      final response = await _client.from('messes').insert({
         'owner_id': userId,
         'mess_name': messName,
         'invite_code': inviteCode,
         'served_meals': servedMeals,
+        'meal_timings': initialMealTimings,
       }).select('id').single();
 
       final newlyCreatedMessId = response['id'];
 
       // Update the profiles table to link this user to the new mess
-      await _dbClient
+      await _client
           .from('profiles')
           .update({'mess_id': newlyCreatedMessId})
           .eq('id', userId);
@@ -60,13 +71,13 @@ class MessRepository {
   /// Joins an existing mess using an invite code.
   Future<void> joinMess({required String inviteCode}) async {
     try {
-      final userId = _dbClient.auth.currentUser?.id;
+      final userId = _client.auth.currentUser?.id;
       if (userId == null) {
         throw Exception('User is not authenticated.');
       }
 
       // Query the messes table to find the matching mess ID
-      final result = await _dbClient
+      final result = await _client
           .from('messes')
           .select('id')
           .eq('invite_code', inviteCode.toUpperCase())
@@ -79,7 +90,7 @@ class MessRepository {
       final matchedMessId = result['id'];
 
       // Update the profiles table to link this user to the mess
-      await _dbClient
+      await _client
           .from('profiles')
           .update({'mess_id': matchedMessId})
           .eq('id', userId);
@@ -103,12 +114,12 @@ class MessRepository {
   /// Retrieves details for the owner's active mess.
   Future<Map<String, dynamic>?> getOwnerMessDetails() async {
     try {
-      final userId = _dbClient.auth.currentUser?.id;
+      final userId = _client.auth.currentUser?.id;
       if (userId == null) return null;
 
       // 1. Check owner's active mess_id from profiles table
       try {
-        final profile = await _dbClient
+        final profile = await _client
             .from('profiles')
             .select('mess_id')
             .eq('id', userId)
@@ -116,7 +127,7 @@ class MessRepository {
 
         final activeMessId = profile?['mess_id']?.toString();
         if (activeMessId != null && activeMessId.isNotEmpty) {
-          final result = await _dbClient
+          final result = await _client
               .from('messes')
               .select('id, mess_name, invite_code, served_meals, cost_per_meal, meal_timings')
               .eq('id', activeMessId)
@@ -127,7 +138,7 @@ class MessRepository {
       } catch (_) {}
 
       // 2. Fallback: Query messes owned by this user
-      final List<dynamic> messes = await _dbClient
+      final List<dynamic> messes = await _client
           .from('messes')
           .select('id, mess_name, invite_code, served_meals, cost_per_meal, meal_timings')
           .eq('owner_id', userId);
@@ -145,7 +156,7 @@ class MessRepository {
   /// Updates the owner's mess name
   Future<void> updateMessName({required String newName}) async {
     try {
-      final userId = _dbClient.auth.currentUser?.id;
+      final userId = _client.auth.currentUser?.id;
       if (userId == null) {
         throw Exception('User is not authenticated.');
       }
@@ -153,12 +164,12 @@ class MessRepository {
       final details = await getOwnerMessDetails();
       final messId = details?['id'];
       if (messId != null) {
-        await _dbClient
+        await _client
             .from('messes')
             .update({'mess_name': newName.trim()})
             .eq('id', messId);
       } else {
-        await _dbClient
+        await _client
             .from('messes')
             .update({'mess_name': newName.trim()})
             .eq('owner_id', userId);
@@ -170,16 +181,20 @@ class MessRepository {
     }
   }
 
-
   /// Updates meal timings and cutoffs for the mess
-  Future<void> updateMealTimings({required String messId, required Map<String, dynamic> timings}) async {
+  Future<void> updateMealTimings({
+    required String messId,
+    Map<String, dynamic>? mealTimings,
+    Map<String, dynamic>? timings,
+  }) async {
+    final timingsToUpdate = mealTimings ?? timings ?? {};
     try {
-      await _dbClient
+      await _client
           .from('messes')
-          .update({'meal_timings': timings})
+          .update({'meal_timings': timingsToUpdate})
           .eq('id', messId);
     } on PostgrestException catch (e) {
-      throw Exception(e.message);
+      throw Exception('Failed to update meal timings: ${e.message}');
     } catch (e) {
       throw Exception('Failed to update meal timings: $e');
     }
@@ -191,7 +206,7 @@ class MessRepository {
       throw ArgumentError('Cost per meal must be greater than zero.');
     }
     try {
-      await _dbClient
+      await _client
           .from('messes')
           .update({'cost_per_meal': costPerMeal})
           .eq('id', messId);
@@ -206,7 +221,7 @@ class MessRepository {
   /// Only profiles that joined with this mess's invite code (matching mess_id) will be returned.
   Future<List<Map<String, dynamic>>> getMessMembers({String? messId}) async {
     try {
-      final userId = _dbClient.auth.currentUser?.id;
+      final userId = _client.auth.currentUser?.id;
       if (userId == null) {
         throw Exception('User is not authenticated.');
       }
@@ -223,7 +238,7 @@ class MessRepository {
       }
 
       // Query profiles strictly belonging to THIS specific mess
-      final List<dynamic> profiles = await _dbClient
+      final List<dynamic> profiles = await _client
           .from('profiles')
           .select('id, full_name, role, mess_id, avatar_url')
           .eq('mess_id', targetMessId)
@@ -251,4 +266,4 @@ class MessRepository {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
-}
+}
