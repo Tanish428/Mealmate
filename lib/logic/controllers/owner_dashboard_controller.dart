@@ -72,6 +72,8 @@ class OwnerDashboardController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   OwnerDashboardStats? get stats => _stats;
   String get messName => _stats?.messName ?? 'Your Mess';
+  String? get avatarUrl => _stats?.avatarUrl;
+  String? get currentMessLogoUrl => _stats?.avatarUrl;
 
   Future<void> loadDashboard() async {
     _isLoading = true;

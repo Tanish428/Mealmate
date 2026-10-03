@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/repos/menu_repo.dart';
 import '../../data/repos/profile_repo.dart';
+import '../../widgets/dynamic_mess_logo.dart';
 
 class MenuViewScreen extends StatefulWidget {
   const MenuViewScreen({super.key});
@@ -215,20 +216,17 @@ class _MenuViewScreenState extends State<MenuViewScreen> {
   Widget _buildTopBranding() {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(8.0),
-          decoration: BoxDecoration(
-            color: primaryRed,
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          child: const Icon(Icons.restaurant, color: Colors.white, size: 24),
+        DynamicMessLogo(
+          size: 42,
+          shape: BoxShape.rectangle,
+          borderRadius: BorderRadius.circular(12.0),
         ),
         const SizedBox(width: 12.0),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'MealMate',
+              (_messName != null && _messName!.isNotEmpty) ? _messName! : 'MealMate',
               style: TextStyle(
                 color: textDark,
                 fontSize: 20,

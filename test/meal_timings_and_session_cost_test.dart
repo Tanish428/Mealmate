@@ -23,8 +23,12 @@ class MockMessRepository implements MessRepository {
   Future<Map<String, dynamic>?> getOwnerMessDetails() async => data;
 
   @override
-  Future<void> updateMealTimings({required String messId, required Map<String, dynamic> timings}) async {
-    updatedTimings = timings;
+  Future<void> updateMealTimings({
+    required String messId,
+    Map<String, dynamic>? mealTimings,
+    Map<String, dynamic>? timings,
+  }) async {
+    updatedTimings = mealTimings ?? timings;
   }
 
   @override
@@ -44,6 +48,9 @@ class MockMessRepository implements MessRepository {
 
   @override
   Future<List<Map<String, dynamic>>> getMessMembers({String? messId}) async => [];
+
+  @override
+  Future<Map<String, dynamic>?> getMessWithHostDetails(String userMessId) async => null;
 }
 
 void main() {

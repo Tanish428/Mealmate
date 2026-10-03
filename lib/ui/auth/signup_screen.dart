@@ -4,6 +4,7 @@ import '../common/custom_button.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/services/supabase_auth_service.dart';
 import '../../logic/controllers/auth_controller.dart';
+import '../../widgets/dynamic_mess_logo.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -103,28 +104,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget _buildHeaderSection(ColorScheme colorScheme, TextTheme textTheme) {
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withAlpha(38),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Icon(
-              Icons.restaurant,
-              size: 40,
-              color: colorScheme.primary,
-            ),
-          ),
-        ),
+        const DynamicMessLogo(size: 80),
         const SizedBox(height: 24.0),
         Text(
           "Create Account",

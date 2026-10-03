@@ -6,6 +6,7 @@ import 'feedback_screen.dart';
 import 'notice_board_screen.dart';
 import '../../data/repos/menu_repo.dart';
 import '../../logic/controllers/member_dashboard_controller.dart';
+import '../../widgets/dynamic_mess_logo.dart';
 
 final GlobalKey<MemberHomeScreenState> memberHomeScreenKey = GlobalKey<MemberHomeScreenState>();
 
@@ -229,20 +230,13 @@ class MemberHomeScreenState extends State<MemberHomeScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (_dashboardController.messLogoUrl != null && _dashboardController.messLogoUrl!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: Image.network(
-                            _dashboardController.messLogoUrl!,
-                            width: 16,
-                            height: 16,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(Icons.storefront, size: 14, color: primaryRed),
-                          ),
-                        )
-                      else
-                        Icon(Icons.storefront, size: 14, color: primaryRed),
-                      const SizedBox(width: 4.0),
+                      DynamicMessLogo(
+                        size: 18,
+                        logoUrl: _dashboardController.messLogoUrl,
+                        shape: BoxShape.rectangle,
+                        borderRadius: BorderRadius.circular(4.0),
+                      ),
+                      const SizedBox(width: 6.0),
                       Flexible(
                         child: Text(
                           _dashboardController.messName ?? 'Campus Central Mess',

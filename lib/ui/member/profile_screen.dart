@@ -5,6 +5,7 @@ import 'edit_profile_screen.dart';
 
 import '../../data/repos/profile_repo.dart';
 import '../../logic/controllers/member_dashboard_controller.dart';
+import '../../widgets/dynamic_mess_logo.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -111,34 +112,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: textDark,
-            ),
-            children: [
-              const TextSpan(text: 'Pro'),
-              TextSpan(
-                text: 'file',
-                style: TextStyle(color: primaryRed),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: textDark,
+                ),
+                children: [
+                  const TextSpan(text: 'Pro'),
+                  TextSpan(
+                    text: 'file',
+                    style: TextStyle(color: primaryRed),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 4.0),
+            Text(
+              'Your MealMate account',
+              style: TextStyle(
+                color: textGray,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4.0),
-        Text(
-          'Your MealMate account',
-          style: TextStyle(
-            color: textGray,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        const DynamicMessLogo(size: 40),
       ],
     );
   }

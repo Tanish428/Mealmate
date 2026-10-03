@@ -70,6 +70,7 @@ class MemberDashboardController extends ChangeNotifier {
   
   String? get avatarUrl => _avatarUrl;
   String? get messLogoUrl => _messLogoUrl;
+  String? get currentMessLogoUrl => _messLogoUrl;
 
   String get selectedMeal => _selectedMeal;
   bool get isActiveTab => _isActiveTab;

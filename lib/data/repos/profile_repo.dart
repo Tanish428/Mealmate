@@ -106,6 +106,11 @@ class ProfileRepository {
         }
       }
 
+      // If user is owner, their own avatar is their mess logo
+      if (profileResult['role'] == 'owner' && messLogoUrl == null) {
+        messLogoUrl = profileResult['avatar_url']?.toString();
+      }
+
       String fullName = profileResult['full_name']?.toString() ?? '';
       if (fullName.trim().isEmpty) {
         final metaFullName = user.userMetadata?['full_name']?.toString();
@@ -131,6 +136,27 @@ class ProfileRepository {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Fetches the joined mess details including the owner's avatar URL.
+  Future<String?> getMessOwnerAvatarUrl(String userMessId) async {
+    try {
+      final messResult = await _client
+          .from('messes')
+          .select('id, mess_name, owner_id')
+          .eq('id', userMessId)
+          .maybeSingle();
+
+      if (messResult != null && messResult['owner_id'] != null) {
+        final ownerProfile = await _client
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', messResult['owner_id'])
+            .maybeSingle();
+        return ownerProfile?['avatar_url']?.toString();
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<String> uploadAvatar(File file) async {

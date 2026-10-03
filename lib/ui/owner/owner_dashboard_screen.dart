@@ -6,6 +6,7 @@ import 'surplus_allocation_screen.dart';
 import 'broadcast_screen.dart';
 import 'owner_feedback_screen.dart';
 import '../../logic/controllers/owner_dashboard_controller.dart';
+import '../../widgets/dynamic_mess_logo.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   final VoidCallback? onNavigateToMenu;
@@ -127,49 +128,18 @@ class _DashboardHeader extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            GestureDetector(
-              onTap: () => context.go('/owner/profile'),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.all(2.0),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFFFD4C7),
-                    width: 2.0,
-                  ),
-                ),
-                child: ClipOval(
-                  child: avatarUrl != null && avatarUrl!.isNotEmpty
-                      ? Image.network(
-                          avatarUrl!,
-                          width: 38,
-                          height: 38,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(displayName),
-                        )
-                      : _buildFallbackAvatar(displayName),
-                ),
+            DynamicMessLogo(
+              size: 42,
+              logoUrl: avatarUrl,
+              border: Border.all(
+                color: const Color(0xFFFFD4C7),
+                width: 2.0,
               ),
+              onTap: () => context.go('/owner/profile'),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildFallbackAvatar(String name) {
-    return CircleAvatar(
-      radius: 19,
-      backgroundColor: const Color(0xFFFFECE8),
-      child: Text(
-        name.isNotEmpty ? name[0].toUpperCase() : 'O',
-        style: const TextStyle(
-          color: Color(0xFFBA2D1D),
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
     );
   }
 }

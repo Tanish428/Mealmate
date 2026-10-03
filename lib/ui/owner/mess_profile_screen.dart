@@ -9,6 +9,7 @@ import '../../data/services/supabase_auth_service.dart';
 import '../../data/repos/mess_repo.dart';
 import '../../data/repos/profile_repo.dart';
 import '../../data/models/mess_model.dart';
+import '../../widgets/dynamic_mess_logo.dart';
 
 class MessProfileScreen extends StatefulWidget {
   const MessProfileScreen({super.key});
@@ -88,6 +89,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     try {
       final repo = ProfileRepository();
       final newUrl = await repo.uploadAvatar(_avatarFile!);
+      DynamicMessLogo.invalidateCache();
       if (mounted) {
         setState(() {
           _avatarUrl = newUrl;

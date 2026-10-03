@@ -266,4 +266,33 @@ class MessRepository {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
+
+  /// Fetches the joined mess details including the owner's avatar URL.
+  Future<Map<String, dynamic>?> getMessWithHostDetails(String userMessId) async {
+    try {
+      final res = await _client
+          .from('messes')
+          .select('id, mess_name, owner_id')
+          .eq('id', userMessId)
+          .maybeSingle();
+
+      if (res != null && res['owner_id'] != null) {
+        final ownerProfile = await _client
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', res['owner_id'])
+            .maybeSingle();
+        final avatarUrl = ownerProfile?['avatar_url']?.toString();
+        return {
+          'id': res['id'],
+          'mess_name': res['mess_name'],
+          'owner_id': res['owner_id'],
+          'avatar_url': avatarUrl,
+        };
+      }
+      return res;
+    } catch (_) {
+      return null;
+    }
+  }
 }
