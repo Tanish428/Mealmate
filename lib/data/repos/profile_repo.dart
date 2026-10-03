@@ -88,7 +88,9 @@ class ProfileRepository {
         if (messResult != null) {
           messName = messResult['mess_name'] as String;
           servedMeals = List<String>.from(messResult['served_meals'] ?? []);
-          mealTimings = messResult['meal_timings'] as Map<String, dynamic>? ?? {};
+          if (messResult['meal_timings'] != null && messResult['meal_timings'] is Map) {
+            mealTimings = Map<String, dynamic>.from(messResult['meal_timings'] as Map);
+          }
         }
       }
 
@@ -110,8 +112,8 @@ class ProfileRepository {
         'mess_id': profileResult['mess_id'],
         'created_at': profileResult['created_at'],
         'served_meals': servedMeals,
-        'meal_timings': mealTimings,
         'avatar_url': profileResult['avatar_url'],
+        'meal_timings': mealTimings,
       };
     } catch (e) {
       return null;

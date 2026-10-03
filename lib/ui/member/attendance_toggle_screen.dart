@@ -62,6 +62,7 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     }
   }
 
+
   String _getCutoffBadgeText(DateTime date, String mealType, bool isCutoffPassed) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -316,6 +317,16 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
     final badgeText = _getCutoffBadgeText(date, lowerMeal, isCutoffPassed);
     final isTomorrow = badgeText == 'Opens Tomorrow';
 
+    String dynamicTimeRange = timeRange;
+    if (_controller.mealTimings != null && _controller.mealTimings!.containsKey(lowerMeal)) {
+      final timing = _controller.mealTimings![lowerMeal] as Map?;
+      final start = timing?['start']?.toString();
+      final end = timing?['end']?.toString();
+      if (start != null && end != null) {
+        dynamicTimeRange = '${_formatTimeStr(start, '')} - ${_formatTimeStr(end, '')}';
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -365,7 +376,7 @@ class _AttendanceToggleScreenState extends State<AttendanceToggleScreen> {
                         ),
                       ),
                       Text(
-                        timeRange,
+                        dynamicTimeRange,
                         style: TextStyle(
                           color: textGray,
                           fontSize: 12,

@@ -1,7 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MenuRepository {
-  final SupabaseClient _client = Supabase.instance.client;
+  final SupabaseClient? _customClient;
+
+  MenuRepository({SupabaseClient? client}) : _customClient = client;
+
+  SupabaseClient get _client => _customClient ?? Supabase.instance.client;
 
   Future<void> addMenu({
     required DateTime date,

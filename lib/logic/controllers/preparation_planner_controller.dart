@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/repos/mess_repo.dart';
 import '../../data/repos/attendance_repo.dart';
 import '../../data/repos/menu_repo.dart';
+import '../../data/repos/surplus_repo.dart';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
 
@@ -9,6 +10,7 @@ class PreparationPlannerController extends ChangeNotifier {
   final MessRepository _messRepo;
   final AttendanceRepo _attendanceRepo;
   final MenuRepository _menuRepo;
+  final SurplusRepository _surplusRepo;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -31,9 +33,11 @@ class PreparationPlannerController extends ChangeNotifier {
     MessRepository? messRepo,
     AttendanceRepo? attendanceRepo,
     MenuRepository? menuRepo,
+    SurplusRepository? surplusRepo,
   })  : _messRepo = messRepo ?? MessRepository(),
         _attendanceRepo = attendanceRepo ?? AttendanceRepo(),
-        _menuRepo = menuRepo ?? MenuRepository() {
+        _menuRepo = menuRepo ?? MenuRepository(),
+        _surplusRepo = surplusRepo ?? SurplusRepository() {
     _init();
   }
 
@@ -97,13 +101,26 @@ class PreparationPlannerController extends ChangeNotifier {
     int cutoffHour = 0;
     int cutoffMinute = 0;
     
-    final data = _mealTimings[_selectedMeal];
+    final lowerMeal = _selectedMeal!.toLowerCase().trim();
+    final data = _mealTimings[lowerMeal];
     if (data != null && data['cutoff'] != null) {
-      final parts = data['cutoff'].split(':');
-      cutoffHour = int.parse(parts[0]);
-      cutoffMinute = int.parse(parts[1]);
+      final parts = data['cutoff'].toString().split(':');
+      cutoffHour = int.tryParse(parts[0]) ?? 0;
+      cutoffMinute = int.tryParse(parts[1]) ?? 0;
     } else {
-      return null;
+      switch (lowerMeal) {
+        case 'breakfast':
+          cutoffHour = 7;
+          break;
+        case 'lunch':
+          cutoffHour = 10;
+          break;
+        case 'dinner':
+          cutoffHour = 19;
+          break;
+        default:
+          return null;
+      }
     }
     
     return DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, cutoffHour, cutoffMinute);
@@ -111,22 +128,18 @@ class PreparationPlannerController extends ChangeNotifier {
 
   bool get isFinalized {
     if (_selectedMeal == null) return false;
-    
-    final now = DateTime.now();
     final cutoffDate = _cutoffDateTime;
     if (cutoffDate == null) return false;
-    
+    final now = DateTime.now();
     return now.isAfter(cutoffDate) || now.isAtSameMomentAs(cutoffDate);
   }
   
   String get remainingTimeUntilCutoff {
     if (isFinalized) return '';
     if (_selectedMeal == null) return '';
-    
-    final now = DateTime.now();
     final cutoffDate = _cutoffDateTime;
     if (cutoffDate == null) return '';
-    
+    final now = DateTime.now();
     final diff = cutoffDate.difference(now);
     
     if (diff.inHours > 24) return "Cutoff tomorrow";
@@ -135,9 +148,18 @@ class PreparationPlannerController extends ChangeNotifier {
 
   String get formattedCutoffTime {
     if (_selectedMeal == null) return '';
-    final data = _mealTimings[_selectedMeal];
+    final lowerMeal = _selectedMeal!.toLowerCase().trim();
+    final data = _mealTimings[lowerMeal];
     if (data != null && data['cutoff'] != null) {
-      return _formatTime12Hour(data['cutoff']);
+      return _formatTime12Hour(data['cutoff'].toString());
+    }
+    final cutoffDate = _cutoffDateTime;
+    if (cutoffDate != null) {
+      final h = cutoffDate.hour;
+      final m = cutoffDate.minute;
+      final hourOfPeriod = (h == 0 || h == 12) ? 12 : (h % 12);
+      final period = h < 12 ? 'AM' : 'PM';
+      return '${hourOfPeriod.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')} $period';
     }
     return '';
   }
@@ -189,6 +211,10 @@ _Generated via MealMate Owner App_
         final rawMeals = messDetails['served_meals'];
         if (rawMeals is List) {
           _servedMeals = rawMeals.map((e) => e.toString().toLowerCase()).toList();
+        }
+        final rawTimings = messDetails['meal_timings'];
+        if (rawTimings is Map) {
+          _mealTimings = Map<String, dynamic>.from(rawTimings);
         }
       }
 
@@ -255,8 +281,26 @@ _Generated via MealMate Owner App_
       } else {
         _menuItemsList = [];
       }
+
+      await syncCookingTarget();
     } catch (e) {
       // Ignore
+    }
+  }
+
+  /// Automatically syncs the calculated final cooking target to meal_prep_records.
+  Future<bool> syncCookingTarget() async {
+    if (_messId.isEmpty || _selectedMeal == null) return false;
+    try {
+      await _surplusRepo.saveCookingTarget(
+        messId: _messId,
+        date: _selectedDate,
+        mealType: _selectedMeal!,
+        targetPortions: finalCookingTarget,
+      );
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -281,17 +325,20 @@ _Generated via MealMate Owner App_
   void incrementExtraPlates() {
     _extraPlates++;
     notifyListeners();
+    syncCookingTarget();
   }
   
   void decrementExtraPlates() {
     if (_extraPlates > 0) {
       _extraPlates--;
       notifyListeners();
+      syncCookingTarget();
     }
   }
   
   void toggleSafetyBuffer(bool value) {
     _safetyBufferEnabled = value;
     notifyListeners();
+    syncCookingTarget();
   }
 }

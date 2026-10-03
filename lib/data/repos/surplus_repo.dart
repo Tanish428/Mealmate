@@ -2,10 +2,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
 
 class SurplusRepository {
-  final SupabaseClient _client;
+  final SupabaseClient? _client;
 
+  // ignore: prefer_initializing_formals
   SurplusRepository({SupabaseClient? client})
-      : _client = client ?? Supabase.instance.client;
+      : _client = client;
+
+  SupabaseClient get _dbClient => _client ?? Supabase.instance.client;
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -25,7 +28,7 @@ class SurplusRepository {
   }) async {
     try {
       final dateStr = _formatDate(date);
-      final response = await _client
+      final response = await _dbClient
           .from('meal_prep_records')
           .select()
           .eq('mess_id', messId)
@@ -52,6 +55,7 @@ class SurplusRepository {
     required int servedPortions,
     int? targetPortions,
     int? discardedPortions,
+    int? costPerMeal,
   }) async {
     if (preparedPortions < servedPortions) {
       throw ArgumentError('Prepared portions ($preparedPortions) cannot be less than served portions ($servedPortions).');
@@ -61,6 +65,9 @@ class SurplusRepository {
     }
     if (discardedPortions != null && discardedPortions < 0) {
       throw ArgumentError('Discarded portions cannot be negative.');
+    }
+    if (costPerMeal != null && costPerMeal <= 0) {
+      throw ArgumentError('Cost per meal must be greater than zero.');
     }
 
     try {
@@ -73,9 +80,10 @@ class SurplusRepository {
         'served_portions': servedPortions,
         if (targetPortions != null) 'target_portions': targetPortions,
         if (discardedPortions != null) 'discarded_portions': discardedPortions,
+        if (costPerMeal != null) 'cost_per_meal': costPerMeal,
       };
 
-      final response = await _client
+      final response = await _dbClient
           .from('meal_prep_records')
           .upsert(payload, onConflict: 'mess_id,prep_date,meal_type')
           .select()
@@ -99,7 +107,7 @@ class SurplusRepository {
     }
 
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('meal_prep_records')
           .update({'discarded_portions': discardedPortions})
           .eq('id', mealPrepRecordId)
@@ -111,6 +119,46 @@ class SurplusRepository {
       throw Exception(e.message);
     } catch (e) {
       throw Exception('Failed to update discarded portions: $e');
+    }
+  }
+
+  /// Saves or updates the planned target cooking portions for a meal.
+  /// If the record does not exist yet, it creates it with prepared=0, served=0, discarded=0.
+  Future<MealPrepRecordModel> saveCookingTarget({
+    required String messId,
+    required DateTime date,
+    required String mealType,
+    required int targetPortions,
+  }) async {
+    if (targetPortions < 0) {
+      throw ArgumentError('Target portions cannot be negative.');
+    }
+
+    try {
+      final dateStr = _formatDate(date);
+      final existing = await getMealPrepRecord(messId: messId, date: date, mealType: mealType);
+
+      final payload = {
+        'mess_id': messId,
+        'prep_date': dateStr,
+        'meal_type': mealType.toLowerCase(),
+        'target_portions': targetPortions,
+        'prepared_portions': existing?.preparedPortions ?? 0,
+        'served_portions': existing?.servedPortions ?? 0,
+        'discarded_portions': existing?.discardedPortions ?? 0,
+      };
+
+      final response = await _dbClient
+          .from('meal_prep_records')
+          .upsert(payload, onConflict: 'mess_id,prep_date,meal_type')
+          .select()
+          .single();
+
+      return MealPrepRecordModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Failed to save cooking target: $e');
     }
   }
 
@@ -126,7 +174,7 @@ class SurplusRepository {
     bool activeOnly = true,
   }) async {
     try {
-      var query = _client.from('donation_partners').select().eq('mess_id', messId);
+      var query = _dbClient.from('donation_partners').select().eq('mess_id', messId);
 
       if (activeOnly) {
         query = query.eq('is_active', true);
@@ -157,7 +205,7 @@ class SurplusRepository {
     }
 
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('donation_partners')
           .insert({
             'mess_id': messId,
@@ -204,7 +252,7 @@ class SurplusRepository {
         if (isActive != null) 'is_active': isActive,
       };
 
-      final response = await _client
+      final response = await _dbClient
           .from('donation_partners')
           .update(payload)
           .eq('id', partnerId)
@@ -220,6 +268,36 @@ class SurplusRepository {
     }
   }
 
+  /// Deletes or deactivates a donation partner.
+  /// If historical allocations reference this partner, it deactivates the partner instead (soft delete).
+  Future<void> deletePartner({
+    required String partnerId,
+    required String messId,
+  }) async {
+    try {
+      await _dbClient
+          .from('donation_partners')
+          .delete()
+          .eq('id', partnerId)
+          .eq('mess_id', messId);
+    } on PostgrestException catch (e) {
+      // Code 23503: foreign key constraint violation (allocations exist)
+      if (e.code == '23503' ||
+          e.message.contains('foreign key') ||
+          e.message.contains('violates foreign key constraint')) {
+        await _dbClient
+            .from('donation_partners')
+            .update({'is_active': false})
+            .eq('id', partnerId)
+            .eq('mess_id', messId);
+      } else {
+        throw Exception(e.message);
+      }
+    } catch (e) {
+      throw Exception('Failed to delete donation partner: $e');
+    }
+  }
+
   // ===========================================================================
   // 3. Surplus Allocations
   // Tracks allocation quantity and states (pending, collected, cancelled).
@@ -231,8 +309,9 @@ class SurplusRepository {
   Future<List<SurplusAllocationModel>> getAllocationsForMeal({
     required String mealPrepRecordId,
   }) async {
+    
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('surplus_allocations')
           .select('*, donation_partners(name)')
           .eq('meal_prep_record_id', mealPrepRecordId)
@@ -271,7 +350,7 @@ class SurplusRepository {
         if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
       };
 
-      final response = await _client
+      final response = await _dbClient
           .from('surplus_allocations')
           .insert(payload)
           .select('*, donation_partners(name)')
@@ -301,7 +380,7 @@ class SurplusRepository {
     }
 
     try {
-      final response = await _client
+      final response = await _dbClient
           .from('surplus_allocations')
           .update({'status': normalizedStatus})
           .eq('id', allocationId)
@@ -330,7 +409,7 @@ class SurplusRepository {
     DateTime? endDate,
   }) async {
     try {
-      var query = _client
+      var query = _dbClient
           .from('surplus_allocations')
           .select('quantity')
           .eq('mess_id', messId)
@@ -364,7 +443,7 @@ class SurplusRepository {
     DateTime? endDate,
   }) async {
     try {
-      var query = _client
+      var query = _dbClient
           .from('meal_prep_records')
           .select('discarded_portions')
           .eq('mess_id', messId);

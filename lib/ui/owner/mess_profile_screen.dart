@@ -25,7 +25,6 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
   String? _avatarUrl;
   bool _isUploading = false;
   Map<String, dynamic>? _messData;
-  
 
   @override
   void initState() {
@@ -131,9 +130,9 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
               _buildProfileImage(colorScheme),
               const SizedBox(height: 32.0),
               _buildMessDetailsCard(colorScheme, textTheme),
-              const SizedBox(height: 24.0),
-              _buildSettingsTile(colorScheme, textTheme),
-              const SizedBox(height: 24.0),
+              const SizedBox(height: 20.0),
+              _buildMealTimingsCard(colorScheme, textTheme),
+              const SizedBox(height: 20.0),
               _buildInviteSection(colorScheme, textTheme),
               const SizedBox(height: 32.0),
               _buildLogOutButton(colorScheme),
@@ -141,51 +140,6 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsTile(ColorScheme colorScheme, TextTheme textTheme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-        leading: Icon(Icons.access_time_rounded, color: colorScheme.primary, size: 28),
-        title: Text(
-          'Meal Timings & Cutoffs',
-          style: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-        subtitle: Text(
-          'Manage serving windows and opt-out cutoffs',
-          style: textTheme.bodySmall?.copyWith(
-            color: Colors.grey.shade600,
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () async {
-          if (_messData != null) {
-            final messModel = MessModel.fromMap(_messData!);
-            final updatedTimings = await context.push<Map<String, dynamic>>('/owner/meal-timings', extra: messModel);
-            if (updatedTimings != null) {
-              setState(() {
-                _messData!['meal_timings'] = updatedTimings;
-              });
-            }
-          }
-        },
       ),
     );
   }
@@ -214,6 +168,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
 
     return Center(
+      
       child: GestureDetector(
         onTap: _pickAndUploadAvatar,
         child: Stack(
@@ -394,6 +349,87 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
     );
   }
 
+  Widget _buildMealTimingsCard(ColorScheme colorScheme, TextTheme textTheme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16.0),
+          onTap: () async {
+            if (_messData != null) {
+              final messModel = MessModel.fromMap(_messData!);
+              final updatedTimings = await context.push<Map<String, dynamic>>('/owner/meal-timings', extra: messModel);
+              if (updatedTimings != null && mounted) {
+                setState(() {
+                  _messData!['meal_timings'] = updatedTimings;
+                });
+              }
+            } else {
+              context.push('/owner/profile/timings');
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFFFECE8),
+                  ),
+                  child: Icon(
+                    Icons.access_time,
+                    color: colorScheme.primary,
+                    size: 24.0,
+                  ),
+                ),
+                const SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Meal Timings & Cutoffs",
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        "Manage serving windows and opt-out cutoffs",
+                        style: textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey.shade400,
+                  size: 24.0,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInviteSection(ColorScheme colorScheme, TextTheme textTheme) {
     return Container(
       padding: const EdgeInsets.all(24.0),
@@ -485,7 +521,7 @@ class _MessProfileScreenState extends State<MessProfileScreen> {
       icon: Icons.logout,
       onPressed: () async { 
         await SupabaseAuthService().signOut();
-        if (context.mounted) {
+        if (mounted) {
           context.go('/login'); 
         }
       },

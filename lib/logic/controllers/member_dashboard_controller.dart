@@ -80,6 +80,7 @@ class MemberDashboardController extends ChangeNotifier {
   int get attendedMeals => _attendedMeals;
   List<String> get servedMeals => _servedMeals;
   Map<String, dynamic> _mealTimings = {};
+  Map<String, dynamic> get mealTimings => _mealTimings;
   
   bool isCutoffPassed(DateTime date, String mealType) {
     final now = DateTime.now();
@@ -92,14 +93,26 @@ class MemberDashboardController extends ChangeNotifier {
     int cutoffHour = 0;
     int cutoffMinute = 0;
     
-    final lowerMeal = mealType.toLowerCase();
+    final lowerMeal = mealType.toLowerCase().trim();
     final data = _mealTimings[lowerMeal];
     if (data != null && data['cutoff'] != null) {
-      final parts = data['cutoff'].split(':');
-      cutoffHour = int.parse(parts[0]);
-      cutoffMinute = int.parse(parts[1]);
+      final parts = data['cutoff'].toString().split(':');
+      cutoffHour = int.tryParse(parts[0]) ?? 0;
+      cutoffMinute = int.tryParse(parts[1]) ?? 0;
     } else {
-      return false; // If not configured, never lock
+      switch (lowerMeal) {
+        case 'breakfast':
+          cutoffHour = 7;
+          break;
+        case 'lunch':
+          cutoffHour = 10;
+          break;
+        case 'dinner':
+          cutoffHour = 19;
+          break;
+        default:
+          return false;
+      }
     }
     
     final cutoffDate = DateTime(today.year, today.month, today.day, cutoffHour, cutoffMinute);
@@ -173,7 +186,11 @@ class MemberDashboardController extends ChangeNotifier {
         _memberName = profile['full_name'] as String?;
         _avatarUrl = profile['avatar_url'] as String?;
         _messName = profile['mess_name'] as String?;
-        _mealTimings = profile['meal_timings'] as Map<String, dynamic>? ?? {};
+        if (profile['meal_timings'] != null && profile['meal_timings'] is Map) {
+          _mealTimings = Map<String, dynamic>.from(profile['meal_timings'] as Map);
+        } else {
+          _mealTimings = {};
+        }
       }
       _todayMenu = results[1] as List<Map<String, dynamic>>? ?? [];
       _tomorrowMenu = results[2] as List<Map<String, dynamic>>? ?? [];
@@ -201,7 +218,11 @@ class MemberDashboardController extends ChangeNotifier {
 
         _profileCreatedAt = DateTime.parse(createdAtStr);
         _servedMeals = List<String>.from(profile['served_meals'] ?? []);
-        _mealTimings = profile['meal_timings'] as Map<String, dynamic>? ?? {};
+        if (profile['meal_timings'] != null && profile['meal_timings'] is Map) {
+          _mealTimings = Map<String, dynamic>.from(profile['meal_timings'] as Map);
+        } else {
+          _mealTimings = {};
+        }
       }
 
       _allSkips = await _attendanceRepo.getMemberSkips();

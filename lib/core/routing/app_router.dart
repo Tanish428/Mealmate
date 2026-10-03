@@ -19,7 +19,7 @@ import '../../ui/owner/owner_dashboard_screen.dart';
 import '../../ui/owner/menu_manager_screen.dart';
 import '../../ui/owner/members_screen.dart';
 import '../../ui/owner/mess_profile_screen.dart';
-import '../../presentation/owner/settings/meal_timings_screen.dart';
+import '../../ui/owner/meal_timings_screen.dart';
 import '../../data/models/mess_model.dart';
 
 // Member Screens
@@ -101,11 +101,17 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/owner/profile',
               builder: (context, state) => const MessProfileScreen(),
+              routes: [
+                GoRoute(
+                  path: 'timings',
+                  builder: (context, state) => const MealTimingsScreen(),
+                ),
+              ],
             ),
             GoRoute(
               path: '/owner/meal-timings',
               builder: (context, state) {
-                final messModel = state.extra as MessModel;
+                final messModel = state.extra as MessModel?;
                 return MealTimingsScreen(currentMess: messModel);
               },
             ),

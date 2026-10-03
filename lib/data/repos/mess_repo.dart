@@ -7,6 +7,8 @@ class MessRepository {
   MessRepository({SupabaseClient? client})
       : _client = client ?? Supabase.instance.client;
 
+  SupabaseClient get _dbClient => _client;
+
   /// Helper to generate a 6-character uppercase alphanumeric string
   String _generateInviteCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -102,62 +104,52 @@ class MessRepository {
   /// Gets the owner's mess name
   Future<String?> getOwnerMessName() async {
     try {
-      final userId = _client.auth.currentUser?.id;
-      if (userId == null) return null;
-
-      final result = await _client
-          .from('messes')
-          .select('mess_name')
-          .eq('owner_id', userId)
-          .maybeSingle();
-
-      if (result != null) {
-        return result['mess_name'] as String?;
-      }
-      return null;
+      final details = await getOwnerMessDetails();
+      return details?['mess_name'] as String?;
     } catch (e) {
       return null;
     }
   }
 
+  /// Retrieves details for the owner's active mess.
   Future<Map<String, dynamic>?> getOwnerMessDetails() async {
     try {
       final userId = _client.auth.currentUser?.id;
       if (userId == null) return null;
 
-      final result = await _client
+      // 1. Check owner's active mess_id from profiles table
+      try {
+        final profile = await _client
+            .from('profiles')
+            .select('mess_id')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final activeMessId = profile?['mess_id']?.toString();
+        if (activeMessId != null && activeMessId.isNotEmpty) {
+          final result = await _client
+              .from('messes')
+              .select('id, mess_name, invite_code, served_meals, cost_per_meal, meal_timings')
+              .eq('id', activeMessId)
+              .maybeSingle();
+
+          if (result != null) return result;
+        }
+      } catch (_) {}
+
+      // 2. Fallback: Query messes owned by this user
+      final List<dynamic> messes = await _client
           .from('messes')
-          .select('id, mess_name, invite_code, served_meals, meal_timings')
-          .eq('owner_id', userId)
-          .maybeSingle();
+          .select('id, mess_name, invite_code, served_meals, cost_per_meal, meal_timings')
+          .eq('owner_id', userId);
 
-      return result;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Updates the meal timings for a specific mess by its primary key.
-  /// Uses the mess `id` (primary key) for a precise single-row update.
-  /// RLS policies on the `messes` table handle ownership authorization.
-  Future<void> updateMealTimings({
-    required String messId,
-    required Map<String, dynamic> mealTimings,
-  }) async {
-    try {
-      final userId = _client.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('User is not authenticated.');
+      if (messes.isNotEmpty) {
+        return Map<String, dynamic>.from(messes.last as Map);
       }
 
-      await _client
-          .from('messes')
-          .update({'meal_timings': mealTimings})
-          .eq('id', messId);
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to update meal timings: ${e.message}');
+      return null;
     } catch (e) {
-      throw Exception('Failed to update meal timings: $e');
+      return null;
     }
   }
 
@@ -169,99 +161,98 @@ class MessRepository {
         throw Exception('User is not authenticated.');
       }
 
-      await _client
-          .from('messes')
-          .update({'mess_name': newName.trim()})
-          .eq('owner_id', userId);
+      final details = await getOwnerMessDetails();
+      final messId = details?['id'];
+      if (messId != null) {
+        await _client
+            .from('messes')
+            .update({'mess_name': newName.trim()})
+            .eq('id', messId);
+      } else {
+        await _client
+            .from('messes')
+            .update({'mess_name': newName.trim()})
+            .eq('owner_id', userId);
+      }
     } on PostgrestException catch (e) {
       throw Exception(e.message);
     } catch (e) {
-      throw Exception('An unexpected error occurred while updating the mess name.');
+      throw Exception('Failed to update mess name: $e');
     }
   }
 
-  /// Fetches all active members belonging to the owner's mess.
-  /// Highly resilient: matches by mess_id, with intelligent fallback to
-  /// profiles with role = 'member' to handle unassigned/pending mess IDs.
-  Future<List<Map<String, dynamic>>> getMessMembers() async {
+  /// Updates meal timings and cutoffs for the mess
+  Future<void> updateMealTimings({
+    required String messId,
+    Map<String, dynamic>? mealTimings,
+    Map<String, dynamic>? timings,
+  }) async {
+    final timingsToUpdate = mealTimings ?? timings ?? {};
+    try {
+      await _client
+          .from('messes')
+          .update({'meal_timings': timingsToUpdate})
+          .eq('id', messId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update meal timings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update meal timings: $e');
+    }
+  }
+
+  /// Updates the cost per meal for ROI calculations.
+  Future<void> updateCostPerMeal({required String messId, required int costPerMeal}) async {
+    if (costPerMeal <= 0) {
+      throw ArgumentError('Cost per meal must be greater than zero.');
+    }
+    try {
+      await _client
+          .from('messes')
+          .update({'cost_per_meal': costPerMeal})
+          .eq('id', messId);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Failed to update cost per meal: $e');
+    }
+  }
+
+  /// Fetches all active members belonging strictly to the specified mess (or owner's active mess).
+  /// Only profiles that joined with this mess's invite code (matching mess_id) will be returned.
+  Future<List<Map<String, dynamic>>> getMessMembers({String? messId}) async {
     try {
       final userId = _client.auth.currentUser?.id;
       if (userId == null) {
         throw Exception('User is not authenticated.');
       }
 
-      // 1. Collect all mess IDs belonging to or associated with this owner
-      final Set<String> ownerMessIds = {};
+      // Determine the specific target mess ID
+      String? targetMessId = messId;
+      if (targetMessId == null || targetMessId.isEmpty) {
+        final ownerMess = await getOwnerMessDetails();
+        targetMessId = ownerMess?['id']?.toString();
+      }
 
-      try {
-        final messesResult = await _client
-            .from('messes')
-            .select('id')
-            .eq('owner_id', userId);
+      if (targetMessId == null || targetMessId.isEmpty) {
+        return [];
+      }
 
-        for (final m in messesResult) {
-          final id = m['id']?.toString();
-          if (id != null && id.isNotEmpty) ownerMessIds.add(id);
-        }
-      } catch (_) {}
+      // Query profiles strictly belonging to THIS specific mess
+      final List<dynamic> profiles = await _client
+          .from('profiles')
+          .select('id, full_name, role, mess_id, avatar_url')
+          .eq('mess_id', targetMessId)
+          .neq('id', userId);
 
-      try {
-        final ownerProfile = await _client
-            .from('profiles')
-            .select('mess_id')
-            .eq('id', userId)
-            .maybeSingle();
-
-        final id = ownerProfile?['mess_id']?.toString();
-        if (id != null && id.isNotEmpty) ownerMessIds.add(id);
-      } catch (_) {}
-
-      // 2. Query profiles: first attempt by matching mess_id
       final List<Map<String, dynamic>> memberList = [];
-      final Set<String> seenUserIds = {};
-
-      if (ownerMessIds.isNotEmpty) {
-        try {
-          final List<dynamic> byMessId = await _client
-              .from('profiles')
-              .select('id, full_name, role, mess_id, avatar_url')
-              .filter('mess_id', 'in', '(${ownerMessIds.join(",")})');
-
-          for (final raw in byMessId) {
-            final map = Map<String, dynamic>.from(raw as Map);
-            final id = map['id']?.toString();
-            final role = map['role']?.toString().toLowerCase().trim();
-            if (id == userId) continue;
-            if (role == 'owner') continue;
-            if (id != null && seenUserIds.add(id)) {
-              memberList.add(map);
-            }
-          }
-        } catch (_) {}
+      for (final raw in profiles) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        final role = map['role']?.toString().toLowerCase().trim();
+        if (role == 'owner') continue;
+        memberList.add(map);
       }
 
-      // 3. Fallback: If no members were found by mess_id, fetch all non-owner profiles
-      if (memberList.isEmpty) {
-        try {
-          final List<dynamic> allProfiles = await _client
-              .from('profiles')
-              .select('id, full_name, role, mess_id, avatar_url')
-              .neq('id', userId);
-
-          for (final raw in allProfiles) {
-            final map = Map<String, dynamic>.from(raw as Map);
-            final role = map['role']?.toString().toLowerCase().trim();
-            final id = map['id']?.toString();
-            if (id == userId) continue;
-            if (role == 'owner') continue;
-            if (id != null && seenUserIds.add(id)) {
-              memberList.add(map);
-            }
-          }
-        } catch (_) {}
-      }
-
-      // 4. Sort alphabetically by full_name
+      // Sort alphabetically by full_name
       memberList.sort((a, b) {
         final nameA = (a['full_name'] as String?)?.toLowerCase() ?? '';
         final nameB = (b['full_name'] as String?)?.toLowerCase() ?? '';
